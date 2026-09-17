@@ -1,0 +1,8 @@
+{
+  "name": "Catálogo Interactivo y Gestor de Exhibición",
+  "description": "[Versión 19.1 - APK Autónoma y Offline] Catálogo interactivo con arquitectura AndroidX nativa completa, empaquetado offline en assets/www, puente de descargas e imágenes, y descarga del proyecto Android.",
+  "requestFramePermissions": [],
+  "majorCapabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ]
+}

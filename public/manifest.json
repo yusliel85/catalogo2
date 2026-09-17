@@ -1,0 +1,26 @@
+{
+  "name": "Creador de Catálogo Pro",
+  "short_name": "Creador Catálogo",
+  "description": "Crea, edita y exporta catálogos comerciales interactivos listos para enviar por WhatsApp.",
+  "start_url": "/",
+  "display": "standalone",
+  "orientation": "portrait-primary",
+  "background_color": "#1c1917",
+  "theme_color": "#1c1917",
+  "icons": [
+    {
+      "src": "/icon.png",
+      "sizes": "512x512",
+      "type": "image/jpeg",
+      "purpose": "any maskable"
+    }
+  ],
+  "categories": ["business", "utilities"],
+  "shortcuts": [
+    {
+      "name": "Nuevo Catálogo",
+      "url": "/?action=new",
+      "description": "Crea una nueva ficha de catálogo de inmediato"
+    }
+  ]
+}
