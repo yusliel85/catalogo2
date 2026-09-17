@@ -82,7 +82,7 @@ class MainActivity : AppCompatActivity() {
         // Asset Loader: Serves local bundled assets from /assets/www via safe virtual origin
         val assetLoader = WebViewAssetLoader.Builder()
             .setDomain("appassets.androidplatform.net")
-            .addPathHandler("/assets/www/", WebViewAssetLoader.AssetsPathHandler(this))
+            .addPathHandler("/", WebViewAssetLoader.AssetsPathHandler(this))
             .build()
 
         webView.webViewClient = object : WebViewClient() {
@@ -214,7 +214,7 @@ class MainActivity : AppCompatActivity() {
 
     private fun loadLocalApp() {
         // Load the 100% offline self-contained web app from local assets
-        webView.loadUrl("https://appassets.androidplatform.net/assets/www/index.html")
+        webView.loadUrl("https://appassets.androidplatform.net/www/index.html")
     }
 
     inner class AndroidInterface {
