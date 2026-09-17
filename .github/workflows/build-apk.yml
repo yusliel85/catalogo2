@@ -1,47 +1,50 @@
-name: Build Android APK
+nombre: Crear APK de Android
 
-on:
-  push:
-    branches: [ main ]
-  workflow_dispatch:
+en:
+  empujar:
+    sucursales: [ principal ]
+  despacho de flujo de trabajo:
 
-jobs:
-  build:
-    runs-on: ubuntu-latest
+empleos:
+  construir:
+    corre: ubuntu-latest
 
-    steps:
-    - name: Checkout repository
-      uses: actions/checkout@v4
+    pasos:
+    - nombre: Repositorio de cheques
+      usos: acciones/checkout@v4
 
-    - name: Set up Node.js
-      uses: actions/setup-node@v4
-      with:
-        node-version: 22
+    - nombre: Configurar Node.js
+      usos: acciones/configuración-nodo@v4
+      con:
+        versión del nodo: 22
 
-    - name: Install dependencies & build web assets
-      run: |
+    - nombre: Instalar dependencias y crear recursos web
+      correr: |
         npm install
         npm run build:android
 
-    - name: Set up JDK 17
-      uses: actions/setup-java@v4
-      with:
-        java-version: '17'
-        distribution: 'temurin'
+    - nombre: Configurar JDK 17
+      usos: acciones/configuración-java@v4
+      con:
+        versión de java: '17'
+        distribución: 'temurin'
 
-    - name: Setup Android SDK
-      uses: android-actions/setup-android@v3
+    - nombre: Configurar el SDK de Android
+      usos: android-actions/setup-android@v3
 
-    - name: Grant execute permission for gradlew
-      run: chmod +x android/gradlew
+    - nombre: Aceptar licencias del SDK de Android
+      correr: yes | sdkmanager --licenses || true
 
-    - name: Build Debug APK
-      run: |
+    - nombre: Otorgar permisos de ejecución para gradlew
+      correr: chmod +x android/gradlew
+
+    - nombre: Compilación de APK de depuración
+      correr: |
         cd android
         ./gradlew assembleDebug --no-daemon
 
-    - name: Upload APK Artifact
-      uses: actions/upload-artifact@v4
-      with:
-        name: CatalogExporter-Android-APK
-        path: android/app/build/outputs/apk/debug/*.apk
+    - nombre: Cargar artefacto APK
+      usos: acciones/cargar-artefacto@v4
+      con:
+        nombre: Exportador de catálogos para Android (APK)
+        camino: android/app/build/outputs/apk/debug/*.apk
