@@ -1,50 +1,50 @@
-nombre: Crear APK de Android
+name: Crear APK de Android
 
-en:
-  empujar:
-    sucursales: [ principal ]
-  despacho de flujo de trabajo:
+on:
+  push:
+    branches: [ principal ]
+  workflow_dispatch:
 
-empleos:
-  construir:
-    corre: ubuntu-latest
+jobs:
+  build:
+    runs-on: ubuntu-latest
 
-    pasos:
-    - nombre: Repositorio de cheques
-      usos: acciones/checkout@v4
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
 
-    - nombre: Configurar Node.js
-      usos: acciones/configuración-nodo@v4
-      con:
-        versión del nodo: 22
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: 22
 
-    - nombre: Instalar dependencias y crear recursos web
-      correr: |
+    - name: Install dependencies and build web assets
+      run: |
         npm install
         npm run build:android
 
-    - nombre: Configurar JDK 17
-      usos: acciones/configuración-java@v4
-      con:
-        versión de java: '17'
-        distribución: 'temurin'
+    - name: Setup JDK 17
+      uses: actions/setup-java@v4
+      with:
+        java-version: '17'
+        distribution: 'temurin'
 
-    - nombre: Configurar el SDK de Android
-      usos: android-actions/setup-android@v3
+    - name: Setup Android SDK
+      uses: android-actions/setup-android@v3
 
-    - nombre: Aceptar licencias del SDK de Android
-      correr: yes | sdkmanager --licenses || true
+    - name: Accept Android SDK licenses
+      run: yes | sdkmanager --licenses || true
 
-    - nombre: Otorgar permisos de ejecución para gradlew
-      correr: chmod +x android/gradlew
+    - name: Grant execute permission for gradlew
+      run: chmod +x android/gradlew
 
-    - nombre: Compilación de APK de depuración
-      correr: |
+    - name: Build Debug APK
+      run: |
         cd android
         ./gradlew assembleDebug --no-daemon
 
-    - nombre: Cargar artefacto APK
-      usos: acciones/cargar-artefacto@v4
-      con:
-        nombre: Exportador de catálogos para Android (APK)
-        camino: android/app/build/outputs/apk/debug/*.apk
+    - name: Upload APK artifact
+      uses: actions/upload-artifact@v4
+      with:
+        name: app-debug
+        path: android/app/build/outputs/apk/debug/*.apk
