@@ -1,0 +1,68 @@
+# Notas de compilación de APK en GitHub Actions
+
+Este documento contiene los archivos y ajustes necesarios para compilar la APK de Android en GitHub Actions. Si el proyecto se vuelve a subir a GitHub, estos archivos deben estar presentes y correctos.
+
+## 1. Archivo .github/workflows/build-apk.yml
+
+```yaml
+name: Crear APK de Android
+
+on:
+  push:
+    branches: [ main ]
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: 22
+
+    - name: Install dependencies and build web assets
+      run: |
+        npm install
+        npm run build
+
+    - name: Copy web assets to Android project
+      run: |
+        mkdir -p android/app/src/main/assets/www
+        cp -r dist/* android/app/src/main/assets/www/
+
+    - name: Setup JDK 17
+      uses: actions/setup-java@v4
+      with:
+        java-version: '17'
+        distribution: 'temurin'
+
+    - name: Configure Android SDK
+      run: |
+        echo "ANDROID_HOME=/usr/local/lib/android/sdk" >> $GITHUB_ENV
+        echo "ANDROID_SDK_ROOT=/usr/local/lib/android/sdk" >> $GITHUB_ENV
+        echo "/usr/local/lib/android/sdk/cmdline-tools/latest/bin" >> $GITHUB_PATH
+        echo "/usr/local/lib/android/sdk/platform-tools" >> $GITHUB_PATH
+
+    - name: Accept Android SDK licenses
+      run: |
+        yes | /usr/local/lib/android/sdk/cmdline-tools/latest/bin/sdkmanager --licenses || true
+
+    - name: Grant execute permission for gradlew
+      run: chmod +x android/gradlew
+
+    - name: Build Debug APK
+      run: |
+        cd android
+        ./gradlew assembleDebug --no-daemon
+
+    - name: Upload APK artifact
+      uses: actions/upload-artifact@v4
+      with:
+        name: app-debug
+        path: android/app/build/outputs/apk/debug/*.apk
+```
