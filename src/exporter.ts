@@ -965,6 +965,14 @@ ${STANDALONE_CSS}
     const viewsKeyAlt = 'catalog-views-' + pId;
     const lastViewedKey = 'interactive-catalog-last-viewed-' + pId;
 
+    // Global Public Counter API config (Abacus Counter API - shared worldwide, free, CORS-enabled)
+    const GLOBAL_COUNTER_API_BASE = 'https://abacus.jasoncameron.dev';
+    const GLOBAL_COUNTER_NS = 'catalog_' + String(pId || 'default').replace(/[^a-zA-Z0-9_-]/g, '_');
+
+    function getCleanProductKey(id) {
+      return String(id || 'unknown').replace(/[^a-zA-Z0-9_-]/g, '_');
+    }
+
     function getApiEndpoints() {
       const urls = [];
       if (typeof window !== 'undefined' && window.location && window.location.origin) {
@@ -1066,11 +1074,41 @@ ${STANDALONE_CSS}
       }
     }
 
-    // Connect to Server-Sent Events (SSE) and live API for real-time views synchronization
+    // Connect to Global Public Counter API and Server-Sent Events (SSE) for shared real-time views
     function fetchLatestViews() {
       try {
         if (typeof fetch === 'undefined') return;
 
+        // 1. Fetch from shared Global Counter API (works on Netlify, localhost, GitHub Pages, etc.)
+        const prodList = (products || []).filter(function(p) { return p && p.id; });
+        prodList.forEach(function(p) {
+          const key = getCleanProductKey(p.id);
+          fetch(GLOBAL_COUNTER_API_BASE + '/get/' + GLOBAL_COUNTER_NS + '/' + key, {
+            method: 'GET',
+            headers: { 'Accept': 'application/json' }
+          })
+            .then(function(res) {
+              if (!res.ok) return null;
+              return res.json();
+            })
+            .then(function(data) {
+              if (data && typeof data.value === 'number') {
+                const updated = {};
+                updated[p.id] = data.value;
+                mergeViews(updated);
+                persistViews(localViews);
+                if (typeof renderCatalog === 'function') {
+                  try { renderCatalog(); } catch(err) {}
+                }
+                if (activeModalProductId && activeModalProductId === p.id) {
+                  updateModalViewsDisplay(p);
+                }
+              }
+            })
+            .catch(function() {});
+        });
+
+        // 2. Fetch from local backend endpoints if available
         const baseViews = {};
         (products || []).forEach(function(p) {
           if (p && typeof p.viewsCount === 'number' && p.viewsCount > 0) {
@@ -2270,6 +2308,30 @@ ${STANDALONE_CSS}
         if (typeof renderCatalog === 'function') {
           renderCatalog();
         }
+
+        // Synchronize with Global Public Counter API (Abacus API - works worldwide and on Netlify)
+        const productKey = getCleanProductKey(id);
+        fetch(GLOBAL_COUNTER_API_BASE + '/hit/' + GLOBAL_COUNTER_NS + '/' + productKey, {
+          method: 'GET',
+          headers: { 'Accept': 'application/json' }
+        })
+          .then(function(res) {
+            if (!res.ok) return null;
+            return res.json();
+          })
+          .then(function(data) {
+            if (data && typeof data.value === 'number') {
+              const updated = {};
+              updated[id] = data.value;
+              mergeViews(updated);
+              persistViews(localViews);
+              updateModalViewsDisplay(p);
+              if (typeof renderCatalog === 'function') {
+                renderCatalog();
+              }
+            }
+          })
+          .catch(function() {});
 
         // Synchronize with all backend endpoints (100% online)
         const endpoints = getApiEndpoints();

@@ -13,7 +13,6 @@ import { sortPromosNewestFirst } from './lib/promoUtils';
 import { CatalogPreview } from './components/CatalogPreview';
 import { ExporterAdmin } from './exporter_admin';
 import { AdminVersionsHistory } from './components/AdminVersionsHistory';
-import { AdminAndroidExport } from './components/AdminAndroidExport';
 import { CustomConfirm } from './components/CustomConfirm';
 import { ImportJsonModal } from './components/ImportJsonModal';
 import { restoreFromJSONText } from './lib/backupService';
@@ -1004,12 +1003,7 @@ function App() {
           <AdminVersionsHistory />
         </div>
 
-        {/* 9. Aplicación Android (.APK) & Código Nativo */}
-        <div className="my-6">
-          <AdminAndroidExport />
-        </div>
-
-        {/* 10. Publicación y Exportación */}
+        {/* 9. Publicación y Exportación */}
         <div className="my-6">
           <ExporterAdmin 
             project={activeProject} 

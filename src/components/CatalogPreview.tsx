@@ -13,6 +13,7 @@ import {
 import { getProductSortTimestamp, sortProductsNewestFirst } from '../lib/productUtils';
 import { optimizeImageUrl } from '../lib/imageUtils';
 import { isRunningInAndroidApp } from '../lib/downloadHelper';
+import { fetchAllGlobalProductViews, hitGlobalProductViews } from '../lib/counterService';
 import { 
   Search, Heart, Globe, Sparkles, SlidersHorizontal, X, Share2, Check, 
   BookOpen, ArrowUp, Eye, Settings, Phone, Info, Building, Menu, HelpCircle,
@@ -376,6 +377,19 @@ export function CatalogPreview({ project, customBlocks = [], previewOnly = false
     });
 
     const syncAndFetchViews = () => {
+      // 1. Fetch from global public Counter API (works everywhere, including Netlify & standalone)
+      const prodIds = (project.products || []).map(p => p.id).filter(Boolean);
+      fetchAllGlobalProductViews(project.id, prodIds).then(globalData => {
+        if (globalData && Object.keys(globalData).length > 0) {
+          setLocalViews(prev => {
+            const merged = mergeViewsMax(prev, globalData);
+            saveViewsToStorage(project.id, merged);
+            return merged;
+          });
+        }
+      }).catch(() => {});
+
+      // 2. Fetch from local backend endpoints if available
       endpoints.forEach(apiBaseUrl => {
         fetch(`${apiBaseUrl}/api/views/sync/${project.id}`, {
           method: 'POST',
@@ -727,8 +741,19 @@ export function CatalogPreview({ project, customBlocks = [], previewOnly = false
           return next;
         });
 
-        // 100% online synchronization with backend
+        // 100% online synchronization with global Counter API & backend
         if (project?.id) {
+          // Increment in global public Counter API (shared across all users, Netlify, web)
+          hitGlobalProductViews(project.id, prodId).then(newGlobalVal => {
+            if (typeof newGlobalVal === 'number' && newGlobalVal > 0) {
+              setLocalViews(prev => {
+                const merged = mergeViewsMax(prev, { [prodId]: newGlobalVal });
+                saveViewsToStorage(project.id, merged);
+                return merged;
+              });
+            }
+          }).catch(() => {});
+
           const endpoints = getApiEndpoints();
           endpoints.forEach(apiBaseUrl => {
             fetch(`${apiBaseUrl}/api/views/${project.id}/${prodId}`, {

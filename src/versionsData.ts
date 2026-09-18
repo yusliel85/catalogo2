@@ -9,11 +9,24 @@ export interface VersionRelease {
 
 export const APP_VERSIONS_HISTORY: VersionRelease[] = [
   {
+    version: '19.2',
+    date: '18 de Septiembre de 2026',
+    title: 'Contador Global y Compartido de Vistas para Catálogo Web y Exportado (Netlify)',
+    badge: 'Actual',
+    isCurrent: true,
+    highlights: [
+      'Contador Global y Compartido: Las vistas de cada producto ahora se sincronizan en tiempo real y de forma global entre todos los usuarios en cualquier navegador o dispositivo.',
+      'Compatibilidad Total con Netlify y Sitios Estáticos: Integración con la API pública global Abacus Counter (CORS abierto, gratuita y sin registro), permitiendo que el catálogo HTML autónomo exportado funcione sin servidor propio.',
+      'Visualización Dual de Vistas: El conteo global se actualiza y muestra tanto en la tarjeta del producto en la vista del catálogo como en el modal de detalle del producto.',
+      'Caché y Respaldo Inteligente: Se mantiene el almacenamiento local como caché de alto rendimiento y respaldo, asegurando que los productos nunca muestren un conteo inferior a su historial previo.',
+      'Mantenimiento de la Arquitectura Original: El sistema original de Google AI Studio, las funciones online existentes y los flujos de exportación se mantienen 100% operativos.'
+    ]
+  },
+  {
     version: '19.1',
     date: '15 de Septiembre de 2026',
     title: 'Migración y Arquitectura Nativa Android (.APK) Autónoma e Independiente de Red',
-    badge: 'Actual',
-    isCurrent: true,
+    badge: 'Mejora',
     highlights: [
       'Estructura Nativa AndroidX Completa: Creación del proyecto Android independiente en /android/ con MainActivity.kt, AndroidManifest.xml, build.gradle (SDK 34) y binario ejecutable gradlew.',
       'Autonomía 100% Offline Certificada: Empaquetado completo de todos los recursos del sistema en /assets/www/ con carga mediante WebViewAssetLoader, garantizando funcionamiento pleno en modo avión sin peticiones a servidores externos.',
