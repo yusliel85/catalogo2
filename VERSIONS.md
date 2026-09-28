@@ -269,3 +269,4 @@ En caso de que cambios futuros introduzcan fallos o regresiones:
    - `src/standalone-css.ts`: Hoja de estilos CSS embebida para funcionamiento 100% offline en modo avión.
    - `src/components/CatalogPreview.tsx`: Vista interactiva del cliente.
    - `src/versionsData.ts`: Historial y control de versiones.
+<!-- Build trigger v29.0 -->
