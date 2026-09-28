@@ -1,14 +1,8 @@
-import React, { useState } from 'react';
-import { MenuOptionItem } from '../types';
-import { 
-  Heart, Share2, Phone, MessageCircle, Building, Info, HelpCircle, 
-  Sparkles, Gift, MapPin, Globe, BookOpen, Star, Mail, ShoppingBag, 
-  Tags, Clock, ArrowUp, ArrowDown, Eye, EyeOff, Save, Check, RefreshCw,
-  ChevronDown, ChevronUp
-} from 'lucide-react';
-
-// Map of support icons we can render dynamically
-export const MENU_ICONS: Record<string, React.ComponentType<any>> = {
+import React, { useState, useRef, useEffect } from 'react';
+import { MenuOptionItem, MenuOptionStep, ContactInfo } from '../types';
+import { DEFAULT_MENU_OPTIONS } from '../defaultData';
+import { scrollToAdminSection } from '../lib/scrollUtils';
+import {
   Heart,
   Share2,
   Phone,
@@ -16,463 +10,728 @@ export const MENU_ICONS: Record<string, React.ComponentType<any>> = {
   Building,
   Info,
   HelpCircle,
-  Sparkles,
-  Gift,
-  MapPin,
-  Globe,
-  BookOpen,
   Star,
-  Mail,
+  Sparkles,
   ShoppingBag,
-  Tags,
-  Clock
-};
+  Package,
+  Tag,
+  Globe,
+  Mail,
+  MapPin,
+  BookOpen,
+  Award,
+  Gift,
+  ChevronDown,
+  ChevronUp,
+  ArrowUp,
+  ArrowDown,
+  Eye,
+  EyeOff,
+  Sliders,
+  Pencil,
+  RotateCcw,
+  Plus,
+  Trash2,
+  User,
+  AlignLeft
+} from 'lucide-react';
 
 interface AdminOptionsMenuProps {
   menuOptions: MenuOptionItem[];
-  setMenuOptions: (options: MenuOptionItem[]) => void;
+  setMenuOptions: React.Dispatch<React.SetStateAction<MenuOptionItem[]>>;
+  contact: ContactInfo;
+  setContact: React.Dispatch<React.SetStateAction<ContactInfo>>;
+  catalogDescription: string;
+  onUpdateCatalogDescription: (desc: string) => void;
+  shareCatalogMessage: string;
+  onUpdateShareCatalogMessage: (msg: string) => void;
+  contactWhatsappMessage: string;
+  onUpdateContactWhatsappMessage: (msg: string) => void;
+  isOpen?: boolean;
+  onToggle?: () => void;
 }
 
-export function AdminOptionsMenu({ menuOptions, setMenuOptions }: AdminOptionsMenuProps) {
-  const [activeTab, setActiveTab] = useState<string>(menuOptions[0]?.id || 'favorites');
-  const [savedOptionId, setSavedOptionId] = useState<string | null>(null);
-  const [isCollapsed, setIsCollapsed] = useState(true);
+export const MENU_ICON_CHOICES: { name: string; label: string }[] = [
+  { name: 'Heart', label: 'Corazón (Favoritos)' },
+  { name: 'Share2', label: 'Compartir' },
+  { name: 'Phone', label: 'Teléfono / WhatsApp' },
+  { name: 'MessageCircle', label: 'Mensaje / Chat' },
+  { name: 'Building', label: 'Empresa / Tienda' },
+  { name: 'Info', label: 'Información' },
+  { name: 'HelpCircle', label: 'Ayuda / ¿Cómo funciona?' },
+  { name: 'Star', label: 'Estrella' },
+  { name: 'Sparkles', label: 'Destellos' },
+  { name: 'ShoppingBag', label: 'Bolsa de compra' },
+  { name: 'Package', label: 'Producto / Caja' },
+  { name: 'Tag', label: 'Etiqueta / Oferta' },
+  { name: 'Globe', label: 'Web / Mundo' },
+  { name: 'Mail', label: 'Correo' },
+  { name: 'MapPin', label: 'Ubicación' },
+  { name: 'BookOpen', label: 'Catálogo / Guía' },
+  { name: 'Award', label: 'Calidad / Garantía' },
+  { name: 'Gift', label: 'Regalo' }
+];
 
-  // Helper to reorder menu items
-  const handleMove = (index: number, direction: 'up' | 'down') => {
-    const nextIndex = direction === 'up' ? index - 1 : index + 1;
-    if (nextIndex < 0 || nextIndex >= menuOptions.length) return;
+export const MENU_COLOR_PRESETS: { value: string; label: string; previewBg: string }[] = [
+  { value: 'neutral', label: 'Neutro (Negro/Blanco según modo)', previewBg: '#1c1917' },
+  { value: '#ef4444', label: 'Rojo', previewBg: '#ef4444' },
+  { value: '#10b981', label: 'Verde Esmeralda', previewBg: '#10b981' },
+  { value: '#f59e0b', label: 'Naranja / Ámbar', previewBg: '#f59e0b' },
+  { value: '#6366f1', label: 'Índigo', previewBg: '#6366f1' },
+  { value: '#8b5cf6', label: 'Violeta', previewBg: '#8b5cf6' },
+  { value: '#3b82f6', label: 'Azul', previewBg: '#3b82f6' },
+  { value: '#ec4899', label: 'Rosa', previewBg: '#ec4899' },
+  { value: '#14b8a6', label: 'Turquesa', previewBg: '#14b8a6' },
+  { value: '#8c6d58', label: 'Madera / Tierra', previewBg: '#8c6d58' }
+];
 
-    const updated = [...menuOptions];
-    const temp = updated[index];
-    updated[index] = updated[nextIndex];
-    updated[nextIndex] = temp;
-    setMenuOptions(updated);
-    
-    // Quick feedback
-    showSaveFeedback('reorder');
-  };
+export function renderMenuOptionIcon(
+  iconName: string,
+  color?: string,
+  isFavMarked = false,
+  className = 'w-4 h-4 shrink-0'
+) {
+  const isNeutral = !color || color === 'neutral';
+  const resolvedColor = isNeutral ? undefined : color;
 
-  const showSaveFeedback = (id: string) => {
-    setSavedOptionId(id);
-    setTimeout(() => setSavedOptionId(null), 1500);
-  };
+  if (iconName === 'Heart') {
+    return (
+      <Heart
+        className={`fav-icon-heart ${isFavMarked ? 'fav-is-active' : 'fav-is-empty'} ${className} ${
+          isNeutral ? 'text-stone-900 dark:text-white' : ''
+        }`}
+        style={
+          resolvedColor
+            ? { color: resolvedColor, stroke: resolvedColor, fill: isFavMarked ? '#ef4444' : 'none' }
+            : { fill: isFavMarked ? '#ef4444' : 'none' }
+        }
+        fill={isFavMarked ? '#ef4444' : 'none'}
+      />
+    );
+  }
 
-  // Helper to update specific option fields
-  const updateOption = (id: string, updates: Partial<MenuOptionItem>) => {
-    const updated = menuOptions.map(opt => {
-      if (opt.id === id) {
-        return { ...opt, ...updates };
-      }
-      return opt;
-    });
-    setMenuOptions(updated);
-    showSaveFeedback(id);
-  };
+  if (iconName === 'Share2') {
+    return (
+      <Share2
+        className={`${isNeutral ? 'icon-share-neutral text-stone-900 dark:text-white' : ''} ${className}`}
+        style={resolvedColor ? { color: resolvedColor, stroke: resolvedColor } : undefined}
+      />
+    );
+  }
 
-  // Helper to update step content for how_it_works
-  const updateHowItWorksStep = (stepIndex: number, fields: { title?: string; desc?: string }) => {
-    const option = menuOptions.find(o => o.id === 'how_it_works');
-    if (!option) return;
+  const styleProp = resolvedColor ? { color: resolvedColor, stroke: resolvedColor } : undefined;
+  const fallbackClass = isNeutral ? 'text-stone-900 dark:text-white' : '';
 
-    const steps = option.steps ? [...option.steps] : [];
-    if (steps[stepIndex]) {
-      steps[stepIndex] = { ...steps[stepIndex], ...fields };
+  switch (iconName) {
+    case 'Phone':
+      return <Phone className={`${className} ${fallbackClass || 'text-emerald-500'}`} style={styleProp} />;
+    case 'MessageCircle':
+      return <MessageCircle className={`${className} ${fallbackClass || 'text-emerald-500'}`} style={styleProp} />;
+    case 'Building':
+      return <Building className={`${className} ${fallbackClass || 'text-amber-500'}`} style={styleProp} />;
+    case 'Info':
+      return <Info className={`${className} ${fallbackClass || 'text-indigo-500'}`} style={styleProp} />;
+    case 'HelpCircle':
+      return <HelpCircle className={`${className} ${fallbackClass || 'text-violet-500'}`} style={styleProp} />;
+    case 'Star':
+      return <Star className={`${className} ${fallbackClass || 'text-amber-500'}`} style={styleProp} />;
+    case 'Sparkles':
+      return <Sparkles className={`${className} ${fallbackClass || 'text-amber-500'}`} style={styleProp} />;
+    case 'ShoppingBag':
+      return <ShoppingBag className={`${className} ${fallbackClass || 'text-rose-500'}`} style={styleProp} />;
+    case 'Package':
+      return <Package className={`${className} ${fallbackClass || 'text-amber-600'}`} style={styleProp} />;
+    case 'Tag':
+      return <Tag className={`${className} ${fallbackClass || 'text-emerald-600'}`} style={styleProp} />;
+    case 'Globe':
+      return <Globe className={`${className} ${fallbackClass || 'text-blue-500'}`} style={styleProp} />;
+    case 'Mail':
+      return <Mail className={`${className} ${fallbackClass || 'text-indigo-500'}`} style={styleProp} />;
+    case 'MapPin':
+      return <MapPin className={`${className} ${fallbackClass || 'text-red-500'}`} style={styleProp} />;
+    case 'BookOpen':
+      return <BookOpen className={`${className} ${fallbackClass || 'text-violet-500'}`} style={styleProp} />;
+    case 'Award':
+      return <Award className={`${className} ${fallbackClass || 'text-amber-500'}`} style={styleProp} />;
+    case 'Gift':
+      return <Gift className={`${className} ${fallbackClass || 'text-pink-500'}`} style={styleProp} />;
+    default:
+      return <Info className={`${className} ${fallbackClass || 'text-stone-500'}`} style={styleProp} />;
+  }
+}
+
+export function AdminOptionsMenu({
+  menuOptions,
+  setMenuOptions,
+  contact,
+  setContact,
+  catalogDescription,
+  onUpdateCatalogDescription,
+  shareCatalogMessage,
+  onUpdateShareCatalogMessage,
+  contactWhatsappMessage,
+  onUpdateContactWhatsappMessage,
+  isOpen,
+  onToggle
+}: AdminOptionsMenuProps) {
+  const [localCollapsed, setLocalCollapsed] = useState(true);
+  const isCollapsed = isOpen !== undefined ? !isOpen : localCollapsed;
+  const sectionRef = useRef<HTMLDivElement>(null);
+  const [editingId, setEditingId] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!isCollapsed) {
+      scrollToAdminSection(sectionRef.current, 30);
+    } else {
+      setEditingId(null);
     }
+  }, [isCollapsed]);
 
-    updateOption('how_it_works', { steps });
+  useEffect(() => {
+    if (editingId && !isCollapsed) {
+      const cardEl = document.getElementById(`admin-menu-opt-${editingId}`);
+      scrollToAdminSection(cardEl || sectionRef.current, 35);
+    }
+  }, [editingId, isCollapsed]);
+
+  const handleHeaderToggle = () => {
+    if (onToggle) {
+      onToggle();
+    } else {
+      setLocalCollapsed(!localCollapsed);
+    }
   };
 
-  const activeOption = menuOptions.find(opt => opt.id === activeTab);
+  const getDefaultColorForOption = (opt: MenuOptionItem): string => {
+    if (opt.color) return opt.color;
+    if (opt.id === 'favorites' || opt.iconName === 'Heart') return 'neutral';
+    if (opt.id === 'share' || opt.iconName === 'Share2') return 'neutral';
+    if (opt.id === 'whatsapp' || opt.iconName === 'Phone') return '#10b981';
+    if (opt.id === 'company' || opt.iconName === 'Building') return '#f59e0b';
+    if (opt.id === 'about' || opt.iconName === 'Info') return '#6366f1';
+    if (opt.id === 'how_it_works' || opt.iconName === 'HelpCircle') return '#8b5cf6';
+    return 'neutral';
+  };
+
+  const updateOption = (id: string, patch: Partial<MenuOptionItem>) => {
+    setMenuOptions((prev) =>
+      prev.map((opt) => (opt.id === id ? { ...opt, ...patch } : opt))
+    );
+  };
+
+  const toggleVisibility = (id: string) => {
+    setMenuOptions((prev) =>
+      prev.map((opt) => (opt.id === id ? { ...opt, visible: !opt.visible } : opt))
+    );
+  };
+
+  const moveOption = (index: number, direction: 'up' | 'down') => {
+    setMenuOptions((prev) => {
+      const targetIndex = direction === 'up' ? index - 1 : index + 1;
+      if (targetIndex < 0 || targetIndex >= prev.length) return prev;
+      const next = [...prev];
+      const [moved] = next.splice(index, 1);
+      next.splice(targetIndex, 0, moved);
+      return next;
+    });
+  };
+
+  const updateContactField = (field: keyof ContactInfo, value: string) => {
+    setContact((prev) => ({ ...prev, [field]: value }));
+  };
+
+  const updateStep = (optId: string, stepIndex: number, field: keyof MenuOptionStep, value: string) => {
+    setMenuOptions((prev) =>
+      prev.map((opt) => {
+        if (opt.id !== optId) return opt;
+        const currentSteps = opt.steps || DEFAULT_MENU_OPTIONS.find((d) => d.id === 'how_it_works')?.steps || [];
+        const updatedSteps = currentSteps.map((s, idx) =>
+          idx === stepIndex ? { ...s, [field]: value } : s
+        );
+        return { ...opt, steps: updatedSteps };
+      })
+    );
+  };
+
+  const addStep = (optId: string) => {
+    setMenuOptions((prev) =>
+      prev.map((opt) => {
+        if (opt.id !== optId) return opt;
+        const currentSteps = opt.steps || DEFAULT_MENU_OPTIONS.find((d) => d.id === 'how_it_works')?.steps || [];
+        return {
+          ...opt,
+          steps: [...currentSteps, { title: 'Nuevo paso', desc: 'Descripción del paso.' }]
+        };
+      })
+    );
+  };
+
+  const removeStep = (optId: string, stepIndex: number) => {
+    setMenuOptions((prev) =>
+      prev.map((opt) => {
+        if (opt.id !== optId) return opt;
+        const currentSteps = opt.steps || DEFAULT_MENU_OPTIONS.find((d) => d.id === 'how_it_works')?.steps || [];
+        return {
+          ...opt,
+          steps: currentSteps.filter((_, idx) => idx !== stepIndex)
+        };
+      })
+    );
+  };
+
+  const handleRestoreDefaults = () => {
+    setMenuOptions(DEFAULT_MENU_OPTIONS);
+    setEditingId(null);
+  };
 
   return (
-    <div className="bg-white rounded-xl shadow-sm border border-stone-200/80 font-sans transition-all duration-200" id="admin-options-menu-view">
-      {/* Header section as toggle trigger */}
-      <div 
-        onClick={() => setIsCollapsed(!isCollapsed)}
-        className="p-5 flex items-center justify-between cursor-pointer select-none hover:bg-stone-50/50 rounded-t-xl"
+    <div
+      ref={sectionRef}
+      className="bg-white rounded-2xl p-4 sm:p-5 border border-stone-200/70 shadow-sm transition-all overflow-hidden"
+    >
+      <button
+        type="button"
+        onClick={handleHeaderToggle}
+        className="w-full flex items-center justify-between text-left group cursor-pointer gap-3"
       >
-        <div className="flex items-center gap-3">
-          <div className="p-2 bg-indigo-50 rounded-lg text-indigo-700">
-            <SettingsIcon className="w-5 h-5 text-indigo-700 animate-spin-slow" />
+        <div className="flex items-center gap-3 min-w-0 flex-1">
+          <div className="p-2.5 bg-violet-50 border border-violet-100 rounded-xl text-violet-600 group-hover:bg-violet-100 transition-colors shrink-0">
+            <Sliders className="w-5 h-5" />
           </div>
-          <div>
-            <h2 className="font-serif text-sm font-bold text-stone-800 flex items-center gap-1.5">
-              Menú de Opciones
-            </h2>
-            {isCollapsed ? (
-              <p className="text-[11px] text-stone-500 mt-0.5 max-w-xs md:max-w-md line-clamp-1 font-sans">
-                {`Botones activos: ${menuOptions.filter(o => o.visible).map(o => o.label).join(', ')}`}
-              </p>
-            ) : (
-              <p className="text-xs text-stone-500 mt-0.5">Ajusta la posición de los botones, iconos, renómbralos o edita sus contenidos emergentes.</p>
-            )}
+          <div className="min-w-0 flex-1">
+            <h3 className="font-bold text-stone-900 text-base">Menú de Opciones</h3>
+            <p className="text-xs text-stone-500 truncate sm:whitespace-normal">
+              Orden, visibilidad, información de empresa, catálogo, mensajes y pasos
+            </p>
           </div>
         </div>
-        <div className="text-stone-400 hover:text-stone-600 transition-colors p-1">
-          {isCollapsed ? <ChevronDown className="w-4 h-4" /> : <ChevronUp className="w-4 h-4" />}
+        <div className="p-1 text-stone-400 group-hover:text-stone-600 transition-colors shrink-0">
+          {isCollapsed ? <ChevronDown className="w-5 h-5" /> : <ChevronUp className="w-5 h-5" />}
         </div>
-      </div>
+      </button>
 
       {!isCollapsed && (
-        <div className="px-5 pb-5 border-t border-stone-100/60 pt-4 flex flex-col">
+        <div className="mt-5 pt-4 border-t border-stone-100 space-y-3 animate-fadeIn">
+          <div className="flex flex-wrap items-center justify-between gap-2 pb-1">
+            <p className="text-xs text-stone-500">
+              Usa las flechas (↑↓) para ordenar, el ojo para mostrar/ocultar y el lápiz para editar cada opción:
+            </p>
+            <button
+              type="button"
+              onClick={handleRestoreDefaults}
+              className="inline-flex items-center gap-1.5 px-2.5 py-1.5 text-[11px] font-semibold text-stone-600 hover:text-stone-900 bg-stone-100 hover:bg-stone-200 rounded-lg transition-colors cursor-pointer shrink-0"
+              title="Restaurar valores por defecto del menú"
+            >
+              <RotateCcw className="w-3.5 h-3.5 shrink-0" />
+              <span>Restaurar por defecto</span>
+            </button>
+          </div>
 
-      {/* REORDERING AND VISIBILITY PANEL */}
-      <div className="bg-stone-50 rounded-xl p-4 border border-stone-200/60 mb-6">
-        <span className="text-[10px] uppercase font-bold tracking-wider text-stone-400 block mb-3">
-          Orden y Visibilidad de los Botones Flotantes
-        </span>
-        <div className="space-y-2">
           {menuOptions.map((opt, idx) => {
-            const IconComp = MENU_ICONS[opt.iconName] || HelpCircle;
+            const isEditing = editingId === opt.id;
+            const currentColor = getDefaultColorForOption(opt);
+            const stepsList =
+              opt.id === 'how_it_works'
+                ? opt.steps || DEFAULT_MENU_OPTIONS.find((d) => d.id === 'how_it_works')?.steps || []
+                : [];
+
             return (
-              <div 
-                key={opt.id} 
-                className={`flex items-center justify-between p-2.5 rounded-lg border text-xs font-medium transition-all ${
-                  activeTab === opt.id 
-                    ? 'bg-white border-stone-300 shadow-sm ring-1 ring-stone-200' 
-                    : 'bg-stone-100/50 hover:bg-stone-100 border-stone-200'
-                }`}
-              >
-                {/* Drag-alike left handle and label */}
-                <div 
-                  className="flex items-center gap-3 cursor-pointer flex-grow py-0.5"
-                  onClick={() => setActiveTab(opt.id)}
-                >
-                  <div className="p-1 rounded bg-stone-200/80 text-stone-600">
-                    <IconComp className="w-4 h-4" />
-                  </div>
-                  <div>
-                    <span className="text-stone-800 font-semibold">{opt.label}</span>
-                    <span className="text-[10px] text-stone-400 block font-normal">ID: {opt.id}</span>
-                  </div>
-                </div>
-
-                {/* Controls (Visibility, Move Up/Down) */}
-                <div className="flex items-center gap-1.5 shrink-0">
-                  <button
-                    onClick={() => updateOption(opt.id, { visible: !opt.visible })}
-                    title={opt.visible ? 'Ocultar del menú' : 'Mostrar en el menú'}
-                    className={`p-1.5 rounded-md border transition-colors cursor-pointer ${
-                      opt.visible 
-                        ? 'bg-stone-150 text-stone-700 hover:bg-stone-200 border-stone-250' 
-                        : 'bg-red-50 text-red-500 hover:bg-red-100 border-red-200'
-                    }`}
-                  >
-                    {opt.visible ? <Eye className="w-3.5 h-3.5" /> : <EyeOff className="w-3.5 h-3.5" />}
-                  </button>
-
-                  <button
-                    onClick={() => handleMove(idx, 'up')}
-                    disabled={idx === 0}
-                    className="p-1.5 rounded-md bg-white border border-stone-200 hover:bg-stone-50 disabled:opacity-30 disabled:hover:bg-white text-stone-600 cursor-pointer"
-                    title="Subir posición"
-                  >
-                    <ArrowUp className="w-3.5 h-3.5" />
-                  </button>
-
-                  <button
-                    onClick={() => handleMove(idx, 'down')}
-                    disabled={idx === menuOptions.length - 1}
-                    className="p-1.5 rounded-md bg-white border border-stone-200 hover:bg-stone-50 disabled:opacity-30 disabled:hover:bg-white text-stone-600 cursor-pointer"
-                    title="Bajar posición"
-                  >
-                    <ArrowDown className="w-3.5 h-3.5" />
-                  </button>
-                </div>
-              </div>
-            );
-          })}
-        </div>
-      </div>
-
-      {/* TAB CONTAINER (Pestañas horizontales para no alargar la pantalla) */}
-      <div>
-        <span className="text-[10px] uppercase font-bold tracking-wider text-stone-400 block mb-3">
-          Detalles de Contenido por Botón (Pestañas)
-        </span>
-        
-        {/* Tabs Scroller */}
-        <div className="flex gap-1 overflow-x-auto pb-2 mb-4 scrollbar-thin scrollbar-thumb-stone-200">
-          {menuOptions.map(opt => {
-            const IconComp = MENU_ICONS[opt.iconName] || HelpCircle;
-            const isSelected = activeTab === opt.id;
-            return (
-              <button
+              <div
                 key={opt.id}
-                onClick={() => setActiveTab(opt.id)}
-                className={`flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-bold whitespace-nowrap transition-all border cursor-pointer ${
-                  isSelected 
-                    ? 'bg-stone-800 text-white border-stone-800 shadow-sm' 
-                    : 'bg-white text-stone-600 border-stone-200 hover:bg-stone-50'
-                }`}
+                id={`admin-menu-opt-${opt.id}`}
+                className="bg-stone-50 rounded-xl border border-stone-200/80 overflow-hidden transition-all"
               >
-                <IconComp className="w-3.5 h-3.5" />
-                <span>{opt.label}</span>
-                {!opt.visible && (
-                  <span className="w-1.5 h-1.5 rounded-full bg-red-500 inline-block" title="Oculto" />
-                )}
-              </button>
-            );
-          })}
-        </div>
-
-        {/* Tab Detail Pane */}
-        {activeOption && (
-          <div className="border border-stone-200 rounded-xl p-5 bg-white space-y-4 shadow-sm animate-in fade-in duration-200">
-            <div className="flex justify-between items-center border-b border-stone-100 pb-3">
-              <div>
-                <h4 className="text-sm font-extrabold text-stone-800">
-                  Editar: {activeOption.label}
-                </h4>
-                <p className="text-[10px] text-stone-400">ID de Opción: {activeOption.id}</p>
-              </div>
-              {savedOptionId === activeOption.id && (
-                <span className="flex items-center gap-1 text-[11px] font-bold text-emerald-600 bg-emerald-50 px-2 py-1 rounded-full border border-emerald-100">
-                  <Check className="w-3.5 h-3.5" /> Guardado
-                </span>
-              )}
-            </div>
-
-            {/* Label Field */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
-                <label className="block text-[10px] font-bold text-stone-500 mb-1 uppercase tracking-wider">
-                  Etiqueta del Menú
-                </label>
-                <input
-                  type="text"
-                  value={activeOption.label}
-                  onChange={e => updateOption(activeOption.id, { label: e.target.value })}
-                  placeholder="Escribe el nombre de esta opción..."
-                  className="w-full text-xs p-2.5 bg-stone-50 border border-stone-300 rounded-lg focus:border-stone-500 focus:ring-1 focus:ring-stone-500 focus:outline-none font-semibold text-stone-800"
-                />
-              </div>
-
-              {/* Icon Picker */}
-              <div>
-                <label className="block text-[10px] font-bold text-stone-500 mb-1 uppercase tracking-wider">
-                  Icono Asociado
-                </label>
-                <div className="grid grid-cols-6 gap-1 border border-stone-200 rounded-lg p-1.5 bg-stone-50 max-h-24 overflow-y-auto">
-                  {Object.keys(MENU_ICONS).map(iconKey => {
-                    const TargetIcon = MENU_ICONS[iconKey];
-                    const isSelected = activeOption.iconName === iconKey;
-                    return (
-                      <button
-                        key={iconKey}
-                        onClick={() => updateOption(activeOption.id, { iconName: iconKey })}
-                        title={iconKey}
-                        className={`p-1.5 rounded flex items-center justify-center transition-all cursor-pointer ${
-                          isSelected 
-                            ? 'bg-stone-800 text-white scale-110 shadow-sm' 
-                            : 'hover:bg-stone-200 text-stone-600'
-                        }`}
-                      >
-                        <TargetIcon className="w-4 h-4" />
-                      </button>
-                    );
-                  })}
-                </div>
-              </div>
-            </div>
-
-            {/* OPTION SPECIFIC CUSTOM CONTENT EDITORS */}
-            <div className="pt-2">
-              {activeOption.id === 'whatsapp' && (
-                <div className="space-y-3">
-                  <div className="p-3 bg-emerald-50/50 rounded-xl border border-emerald-100/60 text-xs">
-                    <p className="text-emerald-800 font-semibold mb-1">💬 Contenido de WhatsApp</p>
-                    <p className="text-stone-500 leading-relaxed text-[11px]">
-                      Configura el mensaje por defecto que se enviará automáticamente cuando el cliente presione el botón de WhatsApp.
-                    </p>
+                {/* Row Header */}
+                <div className="flex items-center justify-between p-2.5 sm:p-3 gap-2">
+                  <div className="flex items-center gap-2.5 sm:gap-3 min-w-0 flex-1">
+                    <div className="p-2 bg-white rounded-lg shadow-2xs border border-stone-200/60 shrink-0 flex items-center justify-center">
+                      {renderMenuOptionIcon(opt.iconName, currentColor, opt.id === 'favorites')}
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <h4 className="text-xs sm:text-sm font-bold text-stone-800 truncate">
+                        {opt.label}
+                      </h4>
+                      <p className="text-[10px] text-stone-400 truncate">
+                        {opt.visible ? 'Visible' : 'Oculto'} · Ícono: {opt.iconName}
+                      </p>
+                    </div>
                   </div>
-                  <div>
-                    <label className="block text-[10px] font-bold text-stone-500 mb-1 uppercase tracking-wider">
-                      Mensaje Predeterminado
-                    </label>
-                    <textarea
-                      value={activeOption.content || ''}
-                      onChange={e => updateOption('whatsapp', { content: e.target.value })}
-                      placeholder="Hola, me interesa saber más de tu catálogo..."
-                      rows={3}
-                      className="w-full text-xs p-2.5 bg-stone-50 border border-stone-300 rounded-lg focus:border-stone-500 focus:ring-1 focus:ring-stone-500 focus:outline-none resize-none text-stone-800 font-medium"
-                    />
+
+                  {/* Controles: Flechas ↑↓ + Ojo (visibilidad) + Lápiz (editar) */}
+                  <div className="flex items-center gap-1 sm:gap-1.5 shrink-0">
+                    <button
+                      type="button"
+                      onClick={() => moveOption(idx, 'up')}
+                      disabled={idx === 0}
+                      className={`p-1.5 sm:p-2 rounded-lg border text-xs transition-colors ${
+                        idx === 0
+                          ? 'bg-stone-100 text-stone-300 border-stone-200/50 cursor-not-allowed opacity-50'
+                          : 'bg-white text-stone-700 border-stone-200 hover:bg-stone-100 cursor-pointer'
+                      }`}
+                      title="Subir opción"
+                      aria-label="Subir opción"
+                    >
+                      <ArrowUp className="w-3.5 h-3.5 shrink-0" />
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => moveOption(idx, 'down')}
+                      disabled={idx === menuOptions.length - 1}
+                      className={`p-1.5 sm:p-2 rounded-lg border text-xs transition-colors ${
+                        idx === menuOptions.length - 1
+                          ? 'bg-stone-100 text-stone-300 border-stone-200/50 cursor-not-allowed opacity-50'
+                          : 'bg-white text-stone-700 border-stone-200 hover:bg-stone-100 cursor-pointer'
+                      }`}
+                      title="Bajar opción"
+                      aria-label="Bajar opción"
+                    >
+                      <ArrowDown className="w-3.5 h-3.5 shrink-0" />
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => toggleVisibility(opt.id)}
+                      className={`p-1.5 sm:px-2.5 sm:py-1.5 rounded-lg text-xs font-semibold flex items-center gap-1 transition-colors cursor-pointer ${
+                        opt.visible
+                          ? 'bg-emerald-100 text-emerald-800 hover:bg-emerald-200'
+                          : 'bg-stone-200 text-stone-600 hover:bg-stone-300'
+                      }`}
+                      title={opt.visible ? 'Visible en el menú (tocar para ocultar)' : 'Oculto en el menú (tocar para mostrar)'}
+                      aria-label={opt.visible ? 'Ocultar opción' : 'Mostrar opción'}
+                    >
+                      {opt.visible ? (
+                        <>
+                          <Eye className="w-3.5 h-3.5 shrink-0" />
+                          <span className="hidden md:inline">Visible</span>
+                        </>
+                      ) : (
+                        <>
+                          <EyeOff className="w-3.5 h-3.5 shrink-0" />
+                          <span className="hidden md:inline">Oculto</span>
+                        </>
+                      )}
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => setEditingId(isEditing ? null : opt.id)}
+                      className={`p-1.5 sm:px-2.5 sm:py-1.5 rounded-lg text-xs font-semibold flex items-center gap-1 transition-colors cursor-pointer border ${
+                        isEditing
+                          ? 'bg-stone-900 text-white border-stone-900'
+                          : 'bg-white text-stone-700 border-stone-200 hover:bg-stone-100'
+                      }`}
+                      title={isEditing ? 'Cerrar edición' : 'Editar opción'}
+                      aria-label={isEditing ? 'Cerrar edición' : 'Editar opción'}
+                    >
+                      <Pencil className="w-3.5 h-3.5 shrink-0" />
+                      <span className="hidden sm:inline">{isEditing ? 'Cerrar' : 'Editar'}</span>
+                    </button>
                   </div>
                 </div>
-              )}
 
-              {activeOption.id === 'about' && (
-                <div className="space-y-3">
-                  <div className="p-3 bg-stone-50 rounded-xl border border-stone-200/60 text-xs">
-                    <p className="text-stone-800 font-semibold mb-1">ℹ️ Descripción del Catálogo</p>
-                    <p className="text-stone-500 leading-relaxed text-[11px]">
-                      Si se proporciona un texto aquí, reemplazará la descripción estándar del catálogo que se ve en la pantalla de "Información del catálogo". Dejar vacío para usar la descripción general.
-                    </p>
-                  </div>
-                  <div>
-                    <label className="block text-[10px] font-bold text-stone-500 mb-1 uppercase tracking-wider">
-                      Texto Alternativo de Información
-                    </label>
-                    <textarea
-                      value={activeOption.content || ''}
-                      onChange={e => updateOption('about', { content: e.target.value })}
-                      placeholder="Información personalizada del catálogo o detalles específicos de la temporada..."
-                      rows={4}
-                      className="w-full text-xs p-2.5 bg-stone-50 border border-stone-300 rounded-lg focus:border-stone-500 focus:ring-1 focus:ring-stone-500 focus:outline-none resize-none text-stone-800 font-medium"
-                    />
-                  </div>
-                </div>
-              )}
+                {/* Expanded Edit Panel (Acordeón exclusivo por opción) */}
+                {isEditing && (
+                  <div className="p-4 bg-white border-t border-stone-200/70 space-y-4 animate-fadeIn">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                      {/* Texto del botón */}
+                      <div>
+                        <label className="block text-xs font-bold text-stone-700 mb-1">
+                          Texto de la opción en el menú
+                        </label>
+                        <input
+                          type="text"
+                          value={opt.label}
+                          onChange={(e) => updateOption(opt.id, { label: e.target.value })}
+                          placeholder="Nombre en el menú..."
+                          className="w-full min-w-0 text-xs px-3 py-2 bg-stone-50 border border-stone-200 rounded-xl focus:outline-none focus:border-stone-400"
+                        />
+                      </div>
 
-              {activeOption.id === 'share' && (
-                <div className="space-y-3">
-                  <div className="p-3 bg-amber-50/50 rounded-xl border border-amber-100/60 text-xs">
-                    <p className="text-amber-800 font-semibold mb-1">🔗 Mensaje de Compartido</p>
-                    <p className="text-stone-500 leading-relaxed text-[11px]">
-                      Configura el mensaje descriptivo inicial que se utiliza al copiar el enlace o compartir por redes.
-                    </p>
-                  </div>
-                  <div>
-                    <label className="block text-[10px] font-bold text-stone-500 mb-1 uppercase tracking-wider">
-                      Prefijo del Mensaje al Compartir
-                    </label>
-                    <input
-                      type="text"
-                      value={activeOption.content || ''}
-                      onChange={e => updateOption('share', { content: e.target.value })}
-                      placeholder="¡Hola! Te comparto nuestro catálogo interactivo para que veas nuestros diseños:"
-                      className="w-full text-xs p-2.5 bg-stone-50 border border-stone-300 rounded-lg focus:border-stone-500 focus:outline-none text-stone-800 font-medium"
-                    />
-                  </div>
-                </div>
-              )}
+                      {/* Selector de Ícono */}
+                      <div>
+                        <label className="block text-xs font-bold text-stone-700 mb-1">
+                          Ícono
+                        </label>
+                        <select
+                          value={opt.iconName}
+                          onChange={(e) => updateOption(opt.id, { iconName: e.target.value })}
+                          className="w-full min-w-0 text-xs px-3 py-2 bg-stone-50 border border-stone-200 rounded-xl focus:outline-none focus:border-stone-400 cursor-pointer"
+                        >
+                          {MENU_ICON_CHOICES.map((ic) => (
+                            <option key={ic.name} value={ic.name}>
+                              {ic.label}
+                            </option>
+                          ))}
+                        </select>
+                      </div>
+                    </div>
 
-              {activeOption.id === 'company' && (
-                <div className="space-y-3">
-                  <div className="p-3 bg-stone-50 rounded-xl border border-stone-200/60 text-xs">
-                    <p className="text-stone-800 font-semibold mb-1">🏢 Texto de Introducción de Empresa</p>
-                    <p className="text-stone-500 leading-relaxed text-[11px]">
-                      Agrega un texto introductorio personalizado que aparecerá arriba de los datos estructurados en la pantalla de "Información de la empresa".
-                    </p>
-                  </div>
-                  <div>
-                    <label className="block text-[10px] font-bold text-stone-500 mb-1 uppercase tracking-wider">
-                      Texto Introductorio
-                    </label>
-                    <textarea
-                      value={activeOption.content || ''}
-                      onChange={e => updateOption('company', { content: e.target.value })}
-                      placeholder="Somos una empresa dedicada a crear los mejores productos artesanales con materiales sostenibles..."
-                      rows={3}
-                      className="w-full text-xs p-2.5 bg-stone-50 border border-stone-300 rounded-lg focus:border-stone-500 focus:outline-none resize-none text-stone-800 font-medium"
-                    />
-                  </div>
-                </div>
-              )}
+                    {/* Selector de Color del Ícono */}
+                    <div>
+                      <label className="block text-xs font-bold text-stone-700 mb-1.5">
+                        Color del ícono
+                      </label>
+                      <div className="flex flex-wrap items-center gap-2">
+                        {MENU_COLOR_PRESETS.map((preset) => {
+                          const isSelected = currentColor === preset.value;
+                          return (
+                            <button
+                              key={preset.value}
+                              type="button"
+                              onClick={() => updateOption(opt.id, { color: preset.value })}
+                              className={`inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-medium border transition-all cursor-pointer ${
+                                isSelected
+                                  ? 'border-stone-900 bg-stone-900 text-white shadow-2xs'
+                                  : 'border-stone-200 bg-stone-50 text-stone-700 hover:bg-stone-100'
+                              }`}
+                            >
+                              <span
+                                className="w-3 h-3 rounded-full border border-white/40 shrink-0"
+                                style={{
+                                  background:
+                                    preset.value === 'neutral'
+                                      ? 'linear-gradient(135deg, #1c1917 50%, #ffffff 50%)'
+                                      : preset.previewBg
+                                }}
+                              />
+                              <span>{preset.label}</span>
+                            </button>
+                          );
+                        })}
 
-              {activeOption.id === 'how_it_works' && (
-                <div className="space-y-4">
-                  <div className="p-3 bg-amber-50/50 rounded-xl border border-amber-100/60 text-xs">
-                    <p className="text-amber-800 font-semibold mb-1">❓ Pasos de "¿Cómo funciona?"</p>
-                    <p className="text-stone-500 leading-relaxed text-[11px]">
-                      Edita libremente cada uno de los 5 pasos que explican el funcionamiento del catálogo digital a tus clientes.
-                    </p>
-                  </div>
-                  
-                  <div className="space-y-4 divide-y divide-stone-100">
-                    {Array.from({ length: 5 }).map((_, stepIdx) => {
-                      const step = activeOption.steps?.[stepIdx] || { title: '', desc: '' };
-                      return (
-                        <div key={stepIdx} className={`pt-3 ${stepIdx === 0 ? 'pt-0' : ''} space-y-2`}>
-                          <div className="flex items-center gap-2">
-                            <span className="w-5 h-5 rounded-full bg-stone-800 text-white text-[10px] font-bold flex items-center justify-center">
-                              {stepIdx + 1}
-                            </span>
-                            <span className="text-[11px] font-bold text-stone-700">Paso {stepIdx + 1}</span>
+                        {/* Color libre (input color) */}
+                        <label className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-medium border border-stone-200 bg-stone-50 text-stone-700 hover:bg-stone-100 cursor-pointer">
+                          <input
+                            type="color"
+                            value={currentColor.startsWith('#') ? currentColor : '#8c6d58'}
+                            onChange={(e) => updateOption(opt.id, { color: e.target.value })}
+                            className="w-4 h-4 rounded cursor-pointer border-0 bg-transparent"
+                          />
+                          <span>Personalizado</span>
+                        </label>
+                      </div>
+                      {(opt.id === 'favorites' || opt.iconName === 'Heart') && (
+                        <p className="text-[11px] text-stone-400 mt-1">
+                          Nota: En modo "Neutro", el corazón usa contorno negro/blanco según el tema y relleno rojo (#ef4444) cuando hay favoritos marcados.
+                        </p>
+                      )}
+                    </div>
+
+                    {/* 1. OPCIÓN: INFORMACIÓN DE EMPRESA (TODA LA INFORMACIÓN DE EMPRESA Y EL ÚNICO NÚMERO DE TELÉFONO) */}
+                    {opt.id === 'company' && (
+                      <div className="space-y-4 pt-3 border-t border-stone-100">
+                        <h5 className="text-xs font-bold text-stone-800 uppercase tracking-wider">
+                          Datos de la Empresa y Contacto
+                        </h5>
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                          <div>
+                            <label className="block text-xs font-semibold text-stone-700 mb-1 flex items-center gap-1.5">
+                              <Building className="w-3.5 h-3.5 text-stone-400 shrink-0" /> Empresa o Marca
+                            </label>
+                            <input
+                              type="text"
+                              value={contact.company}
+                              onChange={(e) => updateContactField('company', e.target.value)}
+                              className="w-full min-w-0 text-xs px-3 py-2 bg-stone-50 text-stone-900 border border-stone-200 rounded-xl focus:outline-none focus:border-stone-400"
+                              placeholder="Ej. Artesanías México"
+                            />
                           </div>
-
-                          <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-                            <div className="md:col-span-1">
-                              <label className="block text-[9px] font-bold text-stone-400 mb-0.5 uppercase">Título del Paso</label>
-                              <input
-                                type="text"
-                                value={step.title}
-                                onChange={e => updateHowItWorksStep(stepIdx, { title: e.target.value })}
-                                placeholder={`Ej. Paso ${stepIdx + 1}`}
-                                className="w-full text-xs p-2 bg-stone-50 border border-stone-300 rounded focus:border-stone-500 focus:outline-none font-semibold text-stone-800"
-                              />
-                            </div>
-                            <div className="md:col-span-2">
-                              <label className="block text-[9px] font-bold text-stone-400 mb-0.5 uppercase font-medium">Descripción corta del paso</label>
-                              <input
-                                type="text"
-                                value={step.desc}
-                                onChange={e => updateHowItWorksStep(stepIdx, { desc: e.target.value })}
-                                placeholder="Escribe la explicación breve..."
-                                className="w-full text-xs p-2 bg-stone-50 border border-stone-300 rounded focus:border-stone-500 focus:outline-none text-stone-700"
-                              />
-                            </div>
+                          <div>
+                            <label className="block text-xs font-semibold text-stone-700 mb-1 flex items-center gap-1.5">
+                              <User className="w-3.5 h-3.5 text-stone-400 shrink-0" /> Nombre del Contacto
+                            </label>
+                            <input
+                              type="text"
+                              value={contact.name}
+                              onChange={(e) => updateContactField('name', e.target.value)}
+                              className="w-full min-w-0 text-xs px-3 py-2 bg-stone-50 text-stone-900 border border-stone-200 rounded-xl focus:outline-none focus:border-stone-400"
+                              placeholder="Ej. Juan Pérez"
+                            />
                           </div>
                         </div>
-                      );
-                    })}
-                  </div>
-                </div>
-              )}
 
-              {activeOption.id === 'favorites' && (
-                <div className="space-y-3">
-                  <div className="p-3 bg-red-50/50 rounded-xl border border-red-100/60 text-xs">
-                    <p className="text-red-800 font-semibold mb-1">❤️ Productos Favoritos</p>
-                    <p className="text-stone-500 leading-relaxed text-[11px]">
-                      Personaliza un subtítulo u orientación para tus clientes en la pantalla emergente de sus favoritos.
-                    </p>
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                          <div>
+                            <label className="block text-xs font-semibold text-stone-700 mb-1 flex items-center gap-1.5">
+                              <Phone className="w-3.5 h-3.5 text-emerald-600 shrink-0" /> Teléfono / WhatsApp
+                            </label>
+                            <input
+                              type="text"
+                              value={contact.phone}
+                              onChange={(e) => updateContactField('phone', e.target.value)}
+                              className="w-full min-w-0 text-xs px-3 py-2 bg-stone-50 text-stone-900 border border-stone-200 rounded-xl focus:outline-none focus:border-stone-400"
+                              placeholder="Ej. +52 55 1234 5678"
+                            />
+                            <p className="text-[11px] text-stone-400 mt-1">
+                              Se reutiliza automáticamente en Contactar por WhatsApp y al consultar productos.
+                            </p>
+                          </div>
+                          <div>
+                            <label className="block text-xs font-semibold text-stone-700 mb-1 flex items-center gap-1.5">
+                              <Mail className="w-3.5 h-3.5 text-stone-400 shrink-0" /> Correo Electrónico
+                            </label>
+                            <input
+                              type="email"
+                              value={contact.email}
+                              onChange={(e) => updateContactField('email', e.target.value)}
+                              className="w-full min-w-0 text-xs px-3 py-2 bg-stone-50 text-stone-900 border border-stone-200 rounded-xl focus:outline-none focus:border-stone-400"
+                              placeholder="contacto@miempresa.com"
+                            />
+                          </div>
+                        </div>
+
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                          <div>
+                            <label className="block text-xs font-semibold text-stone-700 mb-1 flex items-center gap-1.5">
+                              <MapPin className="w-3.5 h-3.5 text-stone-400 shrink-0" /> Dirección
+                            </label>
+                            <input
+                              type="text"
+                              value={contact.address || ''}
+                              onChange={(e) => updateContactField('address', e.target.value)}
+                              className="w-full min-w-0 text-xs px-3 py-2 bg-stone-50 text-stone-900 border border-stone-200 rounded-xl focus:outline-none focus:border-stone-400"
+                              placeholder="Ciudad, País"
+                            />
+                          </div>
+                          <div>
+                            <label className="block text-xs font-semibold text-stone-700 mb-1 flex items-center gap-1.5">
+                              <Globe className="w-3.5 h-3.5 text-stone-400 shrink-0" /> Sitio Web
+                            </label>
+                            <input
+                              type="text"
+                              value={contact.website || ''}
+                              onChange={(e) => updateContactField('website', e.target.value)}
+                              className="w-full min-w-0 text-xs px-3 py-2 bg-stone-50 text-stone-900 border border-stone-200 rounded-xl focus:outline-none focus:border-stone-400"
+                              placeholder="www.miempresa.com"
+                            />
+                          </div>
+                        </div>
+                      </div>
+                    )}
+
+                    {/* 2. OPCIÓN: INFORMACIÓN DEL CATÁLOGO (SOLO DESCRIPCIÓN DEL CATÁLOGO) */}
+                    {opt.id === 'about' && (
+                      <div className="space-y-3 pt-3 border-t border-stone-100">
+                        <div>
+                          <label className="block text-xs font-semibold text-stone-700 mb-1 flex flex-wrap items-center justify-between gap-1">
+                            <span>Descripción del Catálogo</span>
+                            <span className="text-[11px] text-stone-400 font-normal">Soporta saltos de línea</span>
+                          </label>
+                          <textarea
+                            rows={4}
+                            value={catalogDescription}
+                            onChange={(e) => onUpdateCatalogDescription(e.target.value)}
+                            placeholder="Escribe la historia, presentación o descripción general de tu catálogo..."
+                            className="w-full min-w-0 text-xs p-3 bg-stone-50 text-stone-900 border border-stone-200 rounded-xl focus:outline-none focus:border-stone-400"
+                          />
+                        </div>
+                      </div>
+                    )}
+
+                    {/* 3. OPCIÓN: CONTACTAR POR WHATSAPP (SOLO MENSAJE, SIN DUPLICAR TELÉFONO) */}
+                    {opt.id === 'whatsapp' && (
+                      <div className="space-y-2 pt-3 border-t border-stone-100">
+                        <label className="block text-xs font-bold text-stone-700 mb-1">
+                          Mensaje al tocar "Contactar por WhatsApp"
+                        </label>
+                        <textarea
+                          rows={3}
+                          value={contactWhatsappMessage}
+                          onChange={(e) => {
+                            onUpdateContactWhatsappMessage(e.target.value);
+                          }}
+                          placeholder="Hola, me interesa ver más detalles de tu catálogo."
+                          className="w-full min-w-0 text-xs font-mono p-3 bg-stone-50 text-stone-900 border border-stone-200 rounded-xl focus:outline-none focus:border-stone-400"
+                        />
+                        <p className="text-[11px] text-stone-400">
+                          Variables opcionales: {'{nombre_catalogo}'}, {'{empresa}'}, {'{url}'}. Se enviará al número registrado en "Información de Empresa".
+                        </p>
+                      </div>
+                    )}
+
+                    {/* 4. OPCIÓN: COMPARTIR CATÁLOGO (MENSAJE PARA COMPARTIR EL CATÁLOGO) */}
+                    {opt.id === 'share' && (
+                      <div className="space-y-2 pt-3 border-t border-stone-100">
+                        <label className="block text-xs font-bold text-stone-700 mb-1">
+                          Mensaje al Compartir el Catálogo Completo
+                        </label>
+                        <textarea
+                          rows={3}
+                          value={shareCatalogMessage}
+                          onChange={(e) => onUpdateShareCatalogMessage(e.target.value)}
+                          placeholder="¡Hola! Te invito a explorar nuestro catálogo digital interactivo {nombre_catalogo}: {url}"
+                          className="w-full min-w-0 text-xs font-mono p-3 bg-stone-50 text-stone-900 border border-stone-200 rounded-xl focus:outline-none focus:border-stone-400"
+                        />
+                        <p className="text-[11px] text-stone-400">
+                          Variables disponibles: {'{nombre_catalogo}'}, {'{url}'}
+                        </p>
+                      </div>
+                    )}
+
+                    {/* 5. OPCIÓN: ¿CÓMO FUNCIONA? (PASOS EDITABLES) */}
+                    {opt.id === 'how_it_works' && (
+                      <div className="space-y-2.5 pt-3 border-t border-stone-100">
+                        <div className="flex flex-wrap items-center justify-between gap-2">
+                          <label className="block text-xs font-bold text-stone-700">
+                            Pasos de "¿Cómo funciona?"
+                          </label>
+                          <button
+                            type="button"
+                            onClick={() => addStep(opt.id)}
+                            className="inline-flex items-center gap-1 px-2.5 py-1 text-xs font-semibold bg-stone-100 hover:bg-stone-200 text-stone-700 rounded-lg cursor-pointer transition-colors shrink-0"
+                          >
+                            <Plus className="w-3.5 h-3.5 shrink-0" />
+                            <span>Añadir paso</span>
+                          </button>
+                        </div>
+                        <div className="space-y-2">
+                          {stepsList.map((st, stepIdx) => (
+                            <div
+                              key={stepIdx}
+                              className="p-2.5 bg-stone-50 rounded-xl border border-stone-200/70 flex items-start gap-2.5"
+                            >
+                              <span className="w-5 h-5 rounded-full bg-stone-900 text-white text-[11px] font-bold flex items-center justify-center shrink-0 mt-1">
+                                {stepIdx + 1}
+                              </span>
+                              <div className="flex-1 min-w-0 space-y-1.5">
+                                <input
+                                  type="text"
+                                  value={st.title}
+                                  onChange={(e) => updateStep(opt.id, stepIdx, 'title', e.target.value)}
+                                  placeholder="Título del paso..."
+                                  className="w-full min-w-0 text-xs font-bold px-2.5 py-1.5 bg-white border border-stone-200 rounded-lg focus:outline-none"
+                                />
+                                <textarea
+                                  rows={2}
+                                  value={st.desc}
+                                  onChange={(e) => updateStep(opt.id, stepIdx, 'desc', e.target.value)}
+                                  placeholder="Descripción del paso..."
+                                  className="w-full min-w-0 text-xs px-2.5 py-1.5 bg-white border border-stone-200 rounded-lg focus:outline-none"
+                                />
+                              </div>
+                              {stepsList.length > 1 && (
+                                <button
+                                  type="button"
+                                  onClick={() => removeStep(opt.id, stepIdx)}
+                                  className="p-1.5 text-stone-400 hover:text-red-600 rounded-lg hover:bg-red-50 transition-colors cursor-pointer shrink-0"
+                                  title="Eliminar paso"
+                                >
+                                  <Trash2 className="w-4 h-4" />
+                                </button>
+                              )}
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
                   </div>
-                  <div>
-                    <label className="block text-[10px] font-bold text-stone-500 mb-1 uppercase tracking-wider">
-                      Mensaje de Orientación
-                    </label>
-                    <input
-                      type="text"
-                      value={activeOption.content || ''}
-                      onChange={e => updateOption('favorites', { content: e.target.value })}
-                      placeholder="Aquí verás una recopilación de los productos que más te gustan..."
-                      className="w-full text-xs p-2.5 bg-stone-50 border border-stone-300 rounded-lg focus:border-stone-500 focus:outline-none text-stone-800 font-medium"
-                    />
-                  </div>
-                </div>
-              )}
-            </div>
-          </div>
-        )}
-      </div>
-    </div>
+                )}
+              </div>
+            );
+          })}
+        </div>
       )}
     </div>
-  );
-}
-
-// Minimal placeholder Settings icon since standard Settings is too fast/simple
-function SettingsIcon({ className }: { className?: string }) {
-  return (
-    <svg 
-      className={className} 
-      fill="none" 
-      viewBox="0 0 24 24" 
-      stroke="currentColor" 
-      strokeWidth={2.5}
-    >
-      <path 
-        strokeLinecap="round" 
-        strokeLinejoin="round" 
-        d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" 
-      />
-      <path 
-        strokeLinecap="round" 
-        strokeLinejoin="round" 
-        d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" 
-      />
-    </svg>
   );
 }

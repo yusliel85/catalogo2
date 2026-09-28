@@ -18,74 +18,70 @@ export interface CatalogProduct {
   description: string;
   dimensions?: string;
   material?: string;
-  moq?: number; // Minimum Order Quantity
-  images: string[]; // Base64 or URLs
-  image?: string; // Legacy fallback single image
-  tags?: string[];
+  moq?: number;
+  images: string[];
+  tags: string[];
   colors?: string[];
-  primaryImageIndex?: number;
-  viewsCount?: number;
-  createdAt?: number;
+  createdAt?: number | string;
+  views?: number;
+  highlighted?: boolean;
 }
 
 export interface CatalogDesign {
-  primaryColor: string; // Hex
-  secondaryColor: string; // Hex
-  fontFamily: 'serif' | 'sans' | 'mono';
-  bannerImage?: string; // Base64 header banner
-  logoImage?: string; // Base64 logo
+  primaryColor: string;
+  secondaryColor: string;
+  fontFamily: 'sans' | 'serif' | 'mono';
   footerText?: string;
-  layoutGrid: '2x2' | '3x3' | 'list';
-  shareUrl?: string;
-  bannerSubtitle?: string; // Subtítulo del banner de cabecera
-  customBlocks?: any[];
+  layoutGrid: '1x1' | '2x2' | '3x3';
+  bannerImage?: string;
+  logoImage?: string;       // Tarea 3: Logo/Ícono editable
+  subtitle?: string;        // Tarea 3: Subtítulo editable debajo del nombre
+}
+
+export interface MenuOptionStep {
+  title: string;
+  desc: string;
 }
 
 export interface MenuOptionItem {
-  id: string; // 'favorites' | 'share' | 'whatsapp' | 'company' | 'about' | 'how_it_works'
+  id: string;
   label: string;
   iconName: string;
   visible: boolean;
-  content?: string; // For customized content (e.g., custom sharing text, customized about description)
-  steps?: { title: string; desc: string }[]; // Specifically for 'how_it_works' steps
+  color?: string;
+  content?: string;
+  steps?: MenuOptionStep[];
 }
 
 export interface CustomMessages {
-  shareCatalog?: string;
-  shareProduct?: string;
-  consultProduct?: string;
+  shareCatalog: string;
+  shareProduct: string;
+  consultProduct: string;
+  contactWhatsapp?: string;
 }
 
 export interface CatalogProject {
   id: string;
   name: string;
+  subtitle?: string;        // Tarea 3: Soporte también a nivel de proyecto
   createdAt: number;
-  description?: string;
+  description: string;
   products: CatalogProduct[];
   categories: string[];
-  tags?: string[];
+  tags: string[];
   contact: ContactInfo;
   design: CatalogDesign;
-  favorites: string[]; // List of product IDs favorited for the current presentation
+  favorites?: string[];
   menuOptions?: MenuOptionItem[];
   messages?: CustomMessages;
+  customBlocks?: CustomBlock[];
 }
 
-export interface QuoteRequest {
+export interface CustomBlock {
   id: string;
-  productId: string;
-  productName: string;
-  qty: number;
-  notes?: string;
-}
-
-export interface CartQuote {
-  id: string;
-  clientName: string;
-  clientEmail: string;
-  clientPhone: string;
-  companyName: string;
-  items: QuoteRequest[];
-  date: number;
-  status: 'pending' | 'responded';
+  title: string;
+  content: string;
+  badge?: string;
+  image?: string;
+  createdAt?: number | string;
 }

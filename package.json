@@ -1,12 +1,12 @@
 {
-  "name": "react-example",
-  "version": "13.0.0",
+  "name": "catalogo-interactivo",
+  "version": "29.0.0",
   "type": "module",
   "scripts": {
     "dev": "tsx server.ts",
     "build": "vite build && esbuild server.ts --bundle --platform=node --format=cjs --packages=external --sourcemap --outfile=dist/server.cjs",
-    "build:android": "vite build && node scripts/sync_android_assets.js && python3 scripts/package_android_zip.py",
-    "start": "node dist/server.cjs"
+    "start": "node dist/server.cjs",
+    "lint": "tsc --noEmit"
   },
   "dependencies": {
     "canvas-confetti": "^1.9.4",

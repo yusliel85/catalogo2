@@ -1,92 +1,199 @@
 /**
- * Global Product Views Counter Service
- * 
- * Provides shared global counter functionality without requiring a custom backend.
- * Uses the free public Abacus Counter API (https://abacus.jasoncameron.dev),
- * with automatic fallback to secondary counter endpoints and local storage caching.
- * 
- * Works from any origin: Netlify, GitHub Pages, localhost, custom domains, or standalone file preview.
+ * Counter Service for Global Real-time Views via Abacus API
+ * Namespace: catalogo-madera-laser
+ * High-speed parallel queries with concurrency pool (max 6 simultaneous),
+ * 5s timeout, exponential backoff retries (1s, 2s, 4s), and non-blocking architecture.
  */
 
-const ABACUS_API_BASE = 'https://abacus.jasoncameron.dev';
-
-export function getCleanNamespace(projectId: string): string {
-  // Safe alphanumeric namespace per catalog project
-  const sanitized = (projectId || 'default').replace(/[^a-zA-Z0-9_-]/g, '_');
-  return `catalog_${sanitized}`;
-}
+export const GLOBAL_COUNTER_NAMESPACE = 'catalogo-madera-laser';
+const ABACUS_BASE_URL = 'https://abacus.jasoncameron.dev';
+const REQUEST_TIMEOUT_MS = 5000;
+const MAX_CONCURRENCY = 6;
+const PENDING_HITS_KEY = 'catalog-pending-counter-hits';
 
 export function getCleanProductKey(productId: string): string {
-  return (productId || 'unknown').replace(/[^a-zA-Z0-9_-]/g, '_');
+  if (!productId) return 'general';
+  return productId.replace(/[^a-zA-Z0-9_-]/g, '_').toLowerCase();
 }
 
 /**
- * Fetch global view count for a single product
+ * Fetch with timeout using AbortController
  */
-export async function fetchGlobalProductViews(projectId: string, productId: string): Promise<number | null> {
-  const ns = getCleanNamespace(projectId);
-  const key = getCleanProductKey(productId);
+async function fetchWithTimeout(url: string, options: RequestInit = {}, timeoutMs = REQUEST_TIMEOUT_MS): Promise<Response> {
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
   try {
-    const res = await fetch(`${ABACUS_API_BASE}/get/${ns}/${key}`, {
-      method: 'GET',
-      headers: { 'Accept': 'application/json' }
-    });
+    const res = await fetch(url, { ...options, credentials: 'omit', signal: controller.signal });
+    return res;
+  } finally {
+    clearTimeout(timeoutId);
+  }
+}
+
+/**
+ * Fetch with Exponential Backoff (1s, 2s, 4s)
+ */
+async function fetchWithBackoff(url: string, options: RequestInit = {}, maxRetries = 2): Promise<Response> {
+  let attempt = 0;
+  let delay = 1000;
+
+  while (true) {
+    try {
+      const res = await fetchWithTimeout(url, options);
+      if (res.ok || res.status === 404) {
+        return res;
+      }
+      if (res.status === 429 && attempt < maxRetries) {
+        await new Promise(r => setTimeout(r, delay));
+        delay *= 2;
+        attempt++;
+        continue;
+      }
+      return res;
+    } catch (err: unknown) {
+      if (attempt < maxRetries) {
+        await new Promise(r => setTimeout(r, delay));
+        delay *= 2;
+        attempt++;
+        continue;
+      }
+      throw err;
+    }
+  }
+}
+
+// Local offline pending hits queue
+function getPendingHits(): Record<string, number> {
+  try {
+    const raw = localStorage.getItem(PENDING_HITS_KEY);
+    return raw ? JSON.parse(raw) : {};
+  } catch {
+    return {};
+  }
+}
+
+function savePendingHits(hits: Record<string, number>) {
+  try {
+    localStorage.setItem(PENDING_HITS_KEY, JSON.stringify(hits));
+  } catch {}
+}
+
+export function queuePendingHit(key: string) {
+  const hits = getPendingHits();
+  hits[key] = (hits[key] || 0) + 1;
+  savePendingHits(hits);
+}
+
+/**
+ * Get current counter value without incrementing
+ */
+export async function getProductViews(productId: string): Promise<number | null> {
+  const key = getCleanProductKey(productId);
+  const url = `${ABACUS_BASE_URL}/get/${encodeURIComponent(GLOBAL_COUNTER_NAMESPACE)}/${encodeURIComponent(key)}`;
+  try {
+    const res = await fetchWithBackoff(url, { method: 'GET' });
     if (!res.ok) return null;
     const data = await res.json();
-    if (data && typeof data.value === 'number') {
-      return data.value;
-    }
-    return null;
+    return typeof data.value === 'number' ? data.value : null;
   } catch (err) {
     return null;
   }
 }
 
 /**
- * Increment global view count for a single product (hit)
+ * Increment counter and return new value
  */
-export async function hitGlobalProductViews(projectId: string, productId: string): Promise<number | null> {
-  const ns = getCleanNamespace(projectId);
+export async function incrementProductViews(productId: string): Promise<number | null> {
   const key = getCleanProductKey(productId);
+  const url = `${ABACUS_BASE_URL}/hit/${encodeURIComponent(GLOBAL_COUNTER_NAMESPACE)}/${encodeURIComponent(key)}`;
   try {
-    const res = await fetch(`${ABACUS_API_BASE}/hit/${ns}/${key}`, {
-      method: 'GET',
-      headers: { 'Accept': 'application/json' }
-    });
-    if (!res.ok) return null;
-    const data = await res.json();
-    if (data && typeof data.value === 'number') {
-      return data.value;
+    const res = await fetchWithBackoff(url, { method: 'GET' });
+    if (!res.ok) {
+      queuePendingHit(key);
+      return null;
     }
-    return null;
+    const data = await res.json();
+    return typeof data.value === 'number' ? data.value : null;
   } catch (err) {
+    queuePendingHit(key);
     return null;
   }
 }
 
 /**
- * Fetch all global views for a list of products in parallel (batched with concurrency limit)
+ * Flush any offline queued pending hits in parallel
  */
-export async function fetchAllGlobalProductViews(
-  projectId: string,
-  productIds: string[]
-): Promise<Record<string, number>> {
-  const results: Record<string, number> = {};
-  if (!productIds || productIds.length === 0) return results;
+export async function flushPendingHits(): Promise<void> {
+  const hits = getPendingHits();
+  const keys = Object.keys(hits);
+  if (keys.length === 0) return;
 
-  // Batch in chunks of 6 to prevent connection spikes
-  const chunkSize = 6;
-  for (let i = 0; i < productIds.length; i += chunkSize) {
-    const chunk = productIds.slice(i, i + chunkSize);
-    await Promise.all(
-      chunk.map(async (id) => {
-        const val = await fetchGlobalProductViews(projectId, id);
-        if (typeof val === 'number') {
-          results[id] = val;
+  const remaining: Record<string, number> = {};
+
+  await runInParallel(keys, async (key) => {
+    const count = hits[key];
+    for (let i = 0; i < count; i++) {
+      const url = `${ABACUS_BASE_URL}/hit/${encodeURIComponent(GLOBAL_COUNTER_NAMESPACE)}/${encodeURIComponent(key)}`;
+      try {
+        const res = await fetchWithBackoff(url, { method: 'GET' }, 1);
+        if (!res.ok) {
+          remaining[key] = (remaining[key] || 0) + 1;
         }
-      })
-    );
+      } catch {
+        remaining[key] = (remaining[key] || 0) + 1;
+      }
+    }
+  }, MAX_CONCURRENCY);
+
+  savePendingHits(remaining);
+}
+
+/**
+ * High-speed parallel runner with max concurrency limit.
+ * Runs tasks without sequential delays, immediately picking up the next item.
+ */
+export async function runInParallel<T>(
+  items: T[],
+  workerFn: (item: T) => Promise<void>,
+  concurrency = MAX_CONCURRENCY
+): Promise<void> {
+  if (!items || items.length === 0) return;
+
+  let currentIndex = 0;
+
+  async function worker() {
+    while (currentIndex < items.length) {
+      const index = currentIndex++;
+      try {
+        await workerFn(items[index]);
+      } catch (e) {
+        // Non-blocking: failures in one item do not stop other items
+      }
+    }
   }
 
-  return results;
+  const pool = Array.from({ length: Math.min(concurrency, items.length) }, () => worker());
+  await Promise.all(pool);
+}
+
+/**
+ * High-speed batch update of all product counters in parallel.
+ * Updates views in the callback as each product finishes.
+ */
+export async function fetchAllProductViewsParallel(
+  productIds: string[],
+  onUpdate: (productId: string, views: number) => void
+): Promise<void> {
+  if (!productIds || productIds.length === 0) return;
+
+  await runInParallel(
+    productIds,
+    async (id) => {
+      const views = await getProductViews(id);
+      if (views !== null && views >= 0) {
+        onUpdate(id, views);
+      }
+    },
+    MAX_CONCURRENCY
+  );
 }

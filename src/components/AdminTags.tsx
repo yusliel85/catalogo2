@@ -1,243 +1,120 @@
-import React, { useState } from 'react';
-import { Plus, Trash, Tag, ChevronDown, ChevronUp, Edit2, Check, X } from 'lucide-react';
-import { CustomConfirm } from './CustomConfirm';
+import React, { useState, useRef, useEffect } from 'react';
+import { Plus, Trash2, Hash, ChevronDown, ChevronUp } from 'lucide-react';
 import { CatalogProduct } from '../types';
+import { scrollToAdminSection } from '../lib/scrollUtils';
 
 interface AdminTagsProps {
   tags: string[];
   setTags: React.Dispatch<React.SetStateAction<string[]>>;
   products?: CatalogProduct[];
   setProducts?: React.Dispatch<React.SetStateAction<CatalogProduct[]>>;
+  isOpen?: boolean;
+  onToggle?: () => void;
 }
 
-export function AdminTags({ tags, setTags, products = [], setProducts }: AdminTagsProps) {
-  const [newTag, setNewTag] = useState('');
-  const [isCollapsed, setIsCollapsed] = useState(true);
-  const [tagToDelete, setTagToDelete] = useState<string | null>(null);
-  const [editingTag, setEditingTag] = useState<string | null>(null);
-  const [editTagValue, setEditTagValue] = useState('');
+export function AdminTags({ tags, setTags, isOpen, onToggle }: AdminTagsProps) {
+  const [localCollapsed, setLocalCollapsed] = useState(true);
+  const isCollapsed = isOpen !== undefined ? !isOpen : localCollapsed;
+  const sectionRef = useRef<HTMLDivElement>(null);
 
-  const handleAdd = () => {
-    if (!newTag.trim()) return;
-    const standard = newTag.trim().replace(/^#/, '');
-    if (!standard) return;
-    if (tags.some(t => t.toLowerCase() === standard.toLowerCase())) {
-      alert('Esta etiqueta ya existe.');
-      return;
+  const [newTag, setNewTag] = useState('');
+
+  useEffect(() => {
+    if (!isCollapsed) {
+      scrollToAdminSection(sectionRef.current, 30);
     }
-    setTags(prev => [...prev, standard]);
+  }, [isCollapsed]);
+
+  const handleHeaderToggle = () => {
+    if (onToggle) {
+      onToggle();
+    } else {
+      setLocalCollapsed(!localCollapsed);
+    }
+  };
+
+  const handleAdd = (e: React.FormEvent) => {
+    e.preventDefault();
+    const trimmed = newTag.trim();
+    if (!trimmed || tags.includes(trimmed)) return;
+    setTags((prev) => [...prev, trimmed]);
     setNewTag('');
   };
 
-  const handleStartEdit = (tagName: string) => {
-    setEditingTag(tagName);
-    setEditTagValue(tagName);
-  };
-
-  const handleSaveEdit = () => {
-    if (!editingTag || !editTagValue.trim()) {
-      setEditingTag(null);
-      return;
-    }
-    const standard = editTagValue.trim().replace(/^#/, '');
-    if (!standard) {
-      setEditingTag(null);
-      return;
-    }
-    if (standard.toLowerCase() === editingTag.toLowerCase()) {
-      setEditingTag(null);
-      return;
-    }
-    if (tags.some(t => t.toLowerCase() === standard.toLowerCase() && t.toLowerCase() !== editingTag.toLowerCase())) {
-      alert('Ya existe una etiqueta con ese nombre.');
-      return;
-    }
-    const oldTag = editingTag;
-    setTags(prev => prev.map(t => t === oldTag ? standard : t));
-    if (setProducts) {
-      setProducts(prev => prev.map(p => {
-        const updatedTags = (p.tags || []).map(t => t === oldTag ? standard : t);
-        return {
-          ...p,
-          tags: updatedTags
-        };
-      }));
-    }
-    setEditingTag(null);
-  };
-
-  const handleDeleteRequest = (tagName: string, e: React.MouseEvent) => {
-    e.stopPropagation();
-    setTagToDelete(tagName);
-  };
-
-  const handleConfirmDelete = () => {
-    if (!tagToDelete) return;
-    const target = tagToDelete;
-
-    // 1. Eliminar etiqueta de la lista global de etiquetas
-    setTags(prev => prev.filter(t => t !== target));
-
-    // 2. Limpiar la etiqueta de los productos asignados
-    if (setProducts) {
-      setProducts(prev => prev.map(p => {
-        const updatedTags = (p.tags || []).filter(t => t !== target);
-        return {
-          ...p,
-          tags: updatedTags
-        };
-      }));
-    }
-
-    setTagToDelete(null);
+  const handleDelete = (tagToRemove: string) => {
+    setTags((prev) => prev.filter((t) => t !== tagToRemove));
   };
 
   return (
-    <div className="bg-white rounded-xl shadow-sm border border-stone-100 transition-all duration-200 hover:border-stone-200" id="admin-tags-view">
-      {/* Header section as toggle trigger */}
-      <div 
-        onClick={() => setIsCollapsed(!isCollapsed)}
-        className="p-5 flex items-center justify-between cursor-pointer select-none hover:bg-stone-50/50 rounded-t-xl"
+    <div
+      ref={sectionRef}
+      className="bg-white rounded-2xl p-4 sm:p-5 border border-stone-200/70 shadow-sm transition-all overflow-hidden"
+    >
+      <button
+        type="button"
+        onClick={handleHeaderToggle}
+        className="w-full flex items-center justify-between text-left group cursor-pointer gap-3"
       >
-        <div className="flex items-center gap-3">
-          <div className="p-2 bg-blue-50 rounded-lg text-blue-700">
-            <Tag className="w-5 h-5 text-blue-700" />
+        <div className="flex items-center gap-3 min-w-0 flex-1">
+          <div className="p-2.5 bg-teal-50 border border-teal-100 rounded-xl text-teal-600 group-hover:bg-teal-100 transition-colors shrink-0">
+            <Hash className="w-5 h-5" />
           </div>
-          <div>
-            <h2 className="font-serif text-sm font-bold text-stone-800 flex items-center gap-1.5">
-              Etiquetas
-            </h2>
-            {isCollapsed ? (
-              <p className="text-[11px] text-stone-500 mt-0.5 max-w-xs md:max-w-md line-clamp-1 font-sans">
-                {tags.length > 0
-                  ? `Total: ${tags.length} etiquetas (${tags.join(', ')})`
-                  : 'Sin etiquetas asignadas. Agregue etiquetas para organizar sus productos.'}
-              </p>
-            ) : (
-              <p className="text-xs text-stone-500 mt-0.5">Administre los descriptores y palabras clave (tags) para destacar productos.</p>
-            )}
+          <div className="min-w-0 flex-1">
+            <div className="flex items-center gap-2 flex-wrap">
+              <h3 className="font-bold text-stone-900 text-base">Etiquetas</h3>
+              <span className="px-2 py-0.5 bg-teal-50 border border-teal-200/60 text-teal-700 rounded-full text-xs font-semibold">
+                {tags.length}
+              </span>
+            </div>
+            <p className="text-xs text-stone-500 truncate sm:whitespace-normal">
+              Palabras clave y distintivos de productos
+            </p>
           </div>
         </div>
-        <div className="text-stone-400 hover:text-stone-600 transition-colors p-1">
-          {isCollapsed ? <ChevronDown className="w-4 h-4" /> : <ChevronUp className="w-4 h-4" />}
+        <div className="p-1 text-stone-400 group-hover:text-stone-600 transition-colors shrink-0">
+          {isCollapsed ? <ChevronDown className="w-5 h-5" /> : <ChevronUp className="w-5 h-5" />}
         </div>
-      </div>
+      </button>
 
       {!isCollapsed && (
-        <div className="px-5 pb-5 border-t border-stone-100/60 pt-4 flex flex-col justify-between">
-          <div>
-            <div className="flex gap-2 mb-4">
-              <input
-                type="text"
-                value={newTag}
-                onChange={e => setNewTag(e.target.value)}
-                onKeyDown={e => {
-                  if (e.key === 'Enter') {
-                    e.preventDefault();
-                    handleAdd();
-                  }
-                }}
-                placeholder="Nueva Etiqueta (Ej: Oferta, Sostenible, Hand-made)"
-                className="flex-grow text-xs p-2 bg-stone-50 border border-stone-300 rounded focus:border-stone-500 focus:outline-none"
-              />
-              <button
-                type="button"
-                onClick={handleAdd}
-                className="flex items-center gap-1.5 px-3 py-2 bg-stone-800 text-stone-100 hover:bg-stone-700 text-xs font-semibold rounded-lg transition-colors cursor-pointer"
-              >
-                <Plus className="w-4 h-4" /> Agregar
-              </button>
-            </div>
+        <div className="mt-5 pt-4 border-t border-stone-100 space-y-4 animate-fadeIn">
+          <form onSubmit={handleAdd} className="flex flex-col sm:flex-row gap-2">
+            <input
+              type="text"
+              value={newTag}
+              onChange={(e) => setNewTag(e.target.value)}
+              placeholder="Nueva etiqueta (ej. Sostenible, Regalo)..."
+              className="flex-1 min-w-0 w-full text-sm px-3 py-2 bg-stone-50 text-stone-900 border border-stone-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-stone-400/20"
+            />
+            <button
+              type="submit"
+              className="shrink-0 px-4 py-2 bg-stone-900 text-white rounded-xl text-xs font-semibold hover:bg-stone-800 transition-colors flex items-center justify-center gap-1.5 cursor-pointer"
+            >
+              <Plus className="w-4 h-4 shrink-0" />
+              <span>Agregar</span>
+            </button>
+          </form>
 
-            {tags.length === 0 ? (
-              <p className="text-xs text-stone-400 italic py-2 text-center">No hay etiquetas creadas todavía.</p>
-            ) : (
-              <div className="flex flex-wrap gap-1.5 max-h-48 overflow-y-auto pr-1">
-                {tags.map(tag => {
-                  const isEditingThis = editingTag === tag;
-                  return (
-                    <div
-                      key={tag}
-                      className={`flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-medium border transition-colors ${
-                        isEditingThis
-                          ? 'bg-amber-100/90 text-amber-950 border-amber-400 ring-1 ring-amber-400/50'
-                          : 'bg-amber-50/70 text-amber-900 border-amber-200/60 hover:border-amber-300'
-                      }`}
-                    >
-                      {isEditingThis ? (
-                        <form
-                          onSubmit={(e) => {
-                            e.preventDefault();
-                            handleSaveEdit();
-                          }}
-                          className="flex items-center gap-1"
-                        >
-                          <span className="text-amber-700 font-bold">#</span>
-                          <input
-                            type="text"
-                            value={editTagValue}
-                            onChange={e => setEditTagValue(e.target.value)}
-                            className="w-20 sm:w-24 text-xs py-0.5 px-1 bg-white border border-amber-300 rounded focus:border-amber-500 focus:outline-none"
-                            autoFocus
-                          />
-                          <button
-                            type="submit"
-                            className="p-1 rounded text-emerald-700 hover:text-emerald-800 hover:bg-amber-200/50 cursor-pointer"
-                            title="Guardar etiqueta"
-                          >
-                            <Check className="w-3.5 h-3.5" />
-                          </button>
-                          <button
-                            type="button"
-                            onClick={() => setEditingTag(null)}
-                            className="p-1 rounded text-stone-500 hover:text-stone-700 hover:bg-amber-200/50 cursor-pointer"
-                            title="Cancelar"
-                          >
-                            <X className="w-3.5 h-3.5" />
-                          </button>
-                        </form>
-                      ) : (
-                        <>
-                          <span>#{tag}</span>
-                          <div className="flex items-center gap-0.5 ml-0.5">
-                            <button
-                              type="button"
-                              onClick={() => handleStartEdit(tag)}
-                              className="p-1 rounded text-amber-700/60 hover:text-amber-900 transition-colors cursor-pointer"
-                              title={`Editar etiqueta #${tag}`}
-                            >
-                              <Edit2 className="w-3 h-3" />
-                            </button>
-                            <button
-                              type="button"
-                              onClick={(e) => handleDeleteRequest(tag, e)}
-                              className="p-1 rounded text-amber-700/60 hover:text-red-600 transition-colors cursor-pointer"
-                              title={`Eliminar etiqueta #${tag}`}
-                            >
-                              <Trash className="w-3 h-3" />
-                            </button>
-                          </div>
-                        </>
-                      )}
-                    </div>
-                  );
-                })}
+          <div className="flex flex-wrap gap-2">
+            {tags.map((tag, idx) => (
+              <div
+                key={idx}
+                className="flex items-center gap-1 px-3 py-1 bg-stone-100 text-stone-700 rounded-full text-xs font-medium max-w-full"
+              >
+                <span className="truncate">#{tag}</span>
+                <button
+                  type="button"
+                  onClick={() => handleDelete(tag)}
+                  className="text-stone-400 hover:text-red-500 ml-1 transition-colors cursor-pointer shrink-0"
+                >
+                  <Trash2 className="w-3 h-3" />
+                </button>
               </div>
-            )}
+            ))}
           </div>
         </div>
       )}
-
-      {/* Confirmation Modal */}
-      <CustomConfirm
-        isOpen={!!tagToDelete}
-        title="Eliminar Etiqueta"
-        message={`¿Está seguro de que desea eliminar la etiqueta "${tagToDelete}"? Se desvinculará de los productos asignados.`}
-        confirmText="Eliminar Etiqueta"
-        cancelText="Cancelar"
-        onConfirm={handleConfirmDelete}
-        onCancel={() => setTagToDelete(null)}
-      />
     </div>
   );
 }
+

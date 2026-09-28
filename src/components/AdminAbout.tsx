@@ -1,87 +1,71 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import { Info, Check, Sparkles, ChevronDown, ChevronUp } from 'lucide-react';
+import { scrollToAdminSection } from '../lib/scrollUtils';
 
 interface AdminAboutProps {
   description: string;
   setDescription: (desc: string) => void;
+  isOpen?: boolean;
+  onToggle?: () => void;
 }
 
-export function AdminAbout({ description, setDescription }: AdminAboutProps) {
-  const [saved, setSaved] = useState(false);
-  const [isCollapsed, setIsCollapsed] = useState(true);
+export function AdminAbout({ description, setDescription, isOpen, onToggle }: AdminAboutProps) {
+  const [localCollapsed, setLocalCollapsed] = useState(true);
+  const isCollapsed = isOpen !== undefined ? !isOpen : localCollapsed;
+  const sectionRef = useRef<HTMLDivElement>(null);
 
-  const handleSave = () => {
-    setSaved(true);
-    setTimeout(() => setSaved(false), 2000);
+  const handleHeaderToggle = () => {
+    const willOpen = isCollapsed;
+    if (onToggle) {
+      onToggle();
+    } else {
+      setLocalCollapsed(!localCollapsed);
+    }
+    if (willOpen) {
+      scrollToAdminSection(sectionRef.current);
+    }
   };
 
   return (
-    <div className="bg-white rounded-xl shadow-sm border border-stone-100 transition-all duration-200 hover:border-stone-200" id="admin-about-view">
-      {/* Header section as toggle trigger */}
-      <div 
-        onClick={() => setIsCollapsed(!isCollapsed)}
-        className="p-5 flex items-center justify-between cursor-pointer select-none hover:bg-stone-50/50 rounded-t-xl"
+    <div
+      ref={sectionRef}
+      className="bg-white rounded-2xl p-4 sm:p-5 border border-stone-200/70 shadow-sm transition-all overflow-hidden"
+    >
+      <button
+        type="button"
+        onClick={handleHeaderToggle}
+        className="w-full flex items-center justify-between text-left group cursor-pointer gap-3"
       >
-        <div className="flex items-center gap-3">
-          <div className="p-2 bg-amber-50 rounded-lg text-amber-700">
-            <Info className="w-5 h-5 text-amber-700 animate-pulse" />
+        <div className="flex items-center gap-3 min-w-0 flex-1">
+          <div className="p-2.5 bg-indigo-50 border border-indigo-100 rounded-xl text-indigo-600 group-hover:bg-indigo-100 transition-colors shrink-0">
+            <Info className="w-5 h-5" />
           </div>
-          <div>
-            <h2 className="font-serif text-sm font-bold text-stone-800 flex items-center gap-1.5">
-              Acerca de la Aplicación
-            </h2>
-            {isCollapsed ? (
-              <p className="text-[11px] text-stone-500 mt-0.5 max-w-xs md:max-w-md line-clamp-1 font-sans italic">
-                {description ? `"${description}"` : 'Sin descripción de nosotros todavía'}
-              </p>
-            ) : (
-              <p className="text-xs text-stone-500 mt-0.5">Personaliza la presentación de tu negocio que los clientes verán.</p>
-            )}
+          <div className="min-w-0 flex-1">
+            <h3 className="font-bold text-stone-900 text-base">Descripción del Catálogo</h3>
+            <p className="text-xs text-stone-500 truncate sm:whitespace-normal">
+              Descripción principal, manifiesto de marca o historia
+            </p>
           </div>
         </div>
-        <div className="text-stone-400 hover:text-stone-600 transition-colors p-1">
-          {isCollapsed ? <ChevronDown className="w-4 h-4" /> : <ChevronUp className="w-4 h-4" />}
+        <div className="p-1 text-stone-400 group-hover:text-stone-600 transition-colors shrink-0">
+          {isCollapsed ? <ChevronDown className="w-5 h-5" /> : <ChevronUp className="w-5 h-5" />}
         </div>
-      </div>
+      </button>
 
       {!isCollapsed && (
-        <div className="px-5 pb-5 border-t border-stone-100/60 pt-4 flex flex-col justify-between">
-          <div className="space-y-4">
-            <div>
-              <label className="block text-[10px] font-bold text-stone-600 mb-1.5 uppercase tracking-wider flex items-center gap-1">
-                <Sparkles className="w-3.5 h-3.5 text-amber-500" /> Texto de Presentación / Eslogan
-              </label>
-              <textarea
-                value={description}
-                onChange={e => setDescription(e.target.value)}
-                placeholder="Catálogo de exhibición de artículos variados en madera..."
-                rows={5}
-                className="w-full text-xs p-3 bg-stone-50 border border-stone-300 rounded-lg focus:border-stone-500 focus:ring-1 focus:ring-stone-500 focus:outline-none resize-none leading-relaxed text-stone-800 font-medium"
-              />
-              <p className="text-[10px] text-stone-400 mt-1 leading-normal">
-                Este es el mensaje de bienvenida y filosofía de tu marca. El uso de saltos de línea ayuda a estructurar los párrafos de forma elegante.
-              </p>
-            </div>
-          </div>
-
-          <div className="mt-5 pt-3 border-t border-stone-100">
-            <button
-              onClick={handleSave}
-              className={`w-full flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg text-xs font-bold transition-all cursor-pointer shadow-sm ${
-                saved 
-                  ? 'bg-emerald-600 text-white hover:bg-emerald-700' 
-                  : 'bg-stone-900 text-[#fafaf9] hover:bg-stone-850'
-              }`}
-            >
-              {saved ? (
-                <>
-                  <Check className="w-4 h-4 text-white animate-bounce" />
-                  ¡Descripción Guardada con Éxito!
-                </>
-              ) : (
-                'Guardar Sección Acerca de'
-              )}
-            </button>
+        <div className="mt-5 pt-4 border-t border-stone-100 space-y-4 animate-fadeIn">
+          <div>
+            <label className="block text-xs font-semibold text-stone-700 mb-1.5 flex flex-wrap items-center justify-between gap-1">
+              <span>Texto descriptivo general:</span>
+              <span className="text-[11px] text-stone-400 font-normal">Soporta saltos de línea</span>
+            </label>
+            <textarea
+              rows={4}
+              value={description}
+              onChange={(e) => setDescription(e.target.value)}
+              placeholder="Escribe la historia o presentación de tu catálogo..."
+              className="w-full min-w-0 text-sm p-3 bg-stone-50 text-stone-900 border border-stone-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-stone-400/20 focus:border-stone-400"
+            />
           </div>
         </div>
       )}

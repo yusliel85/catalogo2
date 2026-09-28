@@ -1,23 +1,692 @@
 @import "tailwindcss";
+@custom-variant dark (&:where(.dark, .dark *));
 
-@theme {
-  --font-sans: "Space Grotesk", system-ui, -apple-system, sans-serif;
-  --font-serif: "Playfair Display", Georgia, serif;
-  --font-mono: "JetBrains Mono", monospace;
+:root {
+  --card-bg: #ffffff;
+  --card-text: #1c1917;
+  --card-border: rgba(231, 229, 228, 0.8);
 }
 
-@layer base {
-  body {
-    @apply bg-stone-100 text-stone-800 font-sans;
+html.dark,
+body.dark,
+.dark {
+  --card-bg: #1c1917;
+  --card-text: #fafaf9;
+  --card-border: #383431;
+}
+
+/* Card thumbnail image container - uniform size across 1, 2 and 3 columns */
+.aspect-card {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 4 / 3;
+  overflow: hidden;
+  background: transparent !important;
+  background-color: transparent !important;
+  border: none !important;
+  box-shadow: none !important;
+}
+
+.aspect-card img {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100% !important;
+  object-fit: contain !important;
+  background: transparent !important;
+  background-color: transparent !important;
+  mix-blend-mode: normal !important;
+  border: none !important;
+  box-shadow: none !important;
+}
+
+/* Modal product image container - solid background adapted to light/dark mode */
+#modal-main-image-zoom-trigger,
+.aspect-modal-img,
+.aspect-16\/10 {
+  position: relative !important;
+  width: 100% !important;
+  aspect-ratio: 16 / 10 !important;
+  min-height: 220px;
+  overflow: hidden !important;
+  background: #fafaf9 !important;
+  background-color: #fafaf9 !important;
+  border: 1px solid #e7e5e4 !important;
+  box-shadow: none !important;
+}
+
+.dark #modal-main-image-zoom-trigger,
+html.dark #modal-main-image-zoom-trigger,
+.dark .aspect-modal-img,
+html.dark .aspect-modal-img,
+.dark .aspect-16\/10,
+html.dark .aspect-16\/10 {
+  background: #1c1917 !important;
+  background-color: #1c1917 !important;
+  border: 1px solid #292524 !important;
+}
+
+#modal-main-image-zoom-trigger img,
+.aspect-modal-img img,
+.aspect-16\/10 img {
+  object-fit: contain !important;
+  background: transparent !important;
+  background-color: transparent !important;
+  mix-blend-mode: normal !important;
+  border: none !important;
+  box-shadow: none !important;
+}
+
+.modal-product-slide-img {
+  position: absolute !important;
+  top: 0 !important;
+  left: 0 !important;
+  right: 0 !important;
+  bottom: 0 !important;
+  width: 100% !important;
+  height: 100% !important;
+  max-width: 100% !important;
+  max-height: 100% !important;
+  object-fit: contain !important;
+  transition: opacity 200ms ease-in-out, visibility 200ms ease-in-out, transform 300ms ease !important;
+  will-change: opacity;
+  backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
+}
+
+/* Product card uses theme variable and eliminates tap flash */
+.product-card,
+.btn-share-card,
+.btn-favorite-card,
+.btn-views-card,
+button {
+  -webkit-tap-highlight-color: transparent !important;
+}
+.product-card {
+  background-color: var(--card-bg) !important;
+}
+
+/* Specific transparency rules for product cards in all themes */
+.product-card .aspect-card,
+.product-card .aspect-card img,
+.product-card img,
+.dark .product-card .aspect-card,
+.dark .product-card .aspect-card img,
+.dark .product-card img,
+.dark .aspect-card,
+.dark .aspect-card img,
+.dark .aspect-16\/10 img {
+  background: transparent !important;
+  background-color: transparent !important;
+  border: none !important;
+  box-shadow: none !important;
+  mix-blend-mode: normal !important;
+}
+
+@supports not (aspect-ratio: 4 / 3) {
+  .aspect-card {
+    height: 0;
+    padding-bottom: 75%;
   }
 }
 
-/* Hide scrollbar for Chrome, Safari and Opera */
-.no-scrollbar::-webkit-scrollbar {
-  display: none;
+@supports not (aspect-ratio: 16 / 10) {
+  .aspect-16\/10 {
+    height: 0;
+    padding-bottom: 62.5%;
+  }
 }
-/* Hide scrollbar for IE, Edge and Firefox */
-.no-scrollbar {
-  -ms-overflow-style: none;  /* IE and Edge */
-  scrollbar-width: none;  /* Firefox */
+
+/* Modo Oscuro Global */
+html.dark,
+body.dark,
+.dark {
+  color-scheme: dark;
 }
+
+.dark body,
+html.dark body,
+.dark .catalog-page-bg,
+html.dark .catalog-page-bg,
+.dark .admin-page-bg,
+html.dark .admin-page-bg {
+  background-color: #0c0a09 !important;
+  color: #f5f5f4 !important;
+}
+
+.dark .bg-white,
+.dark .bg-white\/95,
+.dark .bg-white\/90,
+.dark .bg-white\/85 {
+  background-color: #1c1917 !important;
+}
+
+.dark .bg-stone-50,
+.dark .bg-stone-50\/40,
+.dark .bg-stone-50\/50,
+.dark .bg-stone-50\/60,
+.dark .bg-stone-50\/70,
+.dark .bg-stone-50\/80,
+.dark .bg-stone-50\/90 {
+  background-color: #292524 !important;
+}
+
+.dark .bg-stone-100,
+.dark .bg-stone-100\/50,
+.dark .bg-stone-100\/60,
+.dark .bg-stone-100\/70,
+.dark .bg-stone-100\/80,
+.dark .bg-stone-100\/90 {
+  background-color: #292524 !important;
+}
+
+.dark .catalog-page-bg.admin-page-bg,
+html.dark .catalog-page-bg.admin-page-bg {
+  background-color: #0c0a09 !important;
+  color: #f5f5f4 !important;
+}
+
+.dark .bg-stone-200 {
+  background-color: #44403c !important;
+}
+
+.dark .hover\:bg-stone-50\/50:hover,
+.dark .hover\:bg-stone-100:hover,
+.dark .hover\:bg-stone-200:hover,
+.dark .hover\:bg-stone-200\/60:hover {
+  background-color: #292524 !important;
+}
+
+.dark .divide-stone-100 > :not([hidden]) ~ :not([hidden]),
+.dark .divide-stone-200 > :not([hidden]) ~ :not([hidden]) {
+  border-color: #292524 !important;
+}
+
+.dark .admin-page-bg input:not([type="color"]),
+.dark .admin-page-bg textarea,
+.dark .admin-page-bg select {
+  background-color: #292524 !important;
+  color: #fafaf9 !important;
+  border-color: #44403c !important;
+}
+
+.dark .admin-page-bg form.bg-stone-50 input:not([type="color"]),
+.dark .admin-page-bg form.bg-stone-50 textarea,
+.dark .admin-page-bg form.bg-stone-50 select,
+.dark .admin-page-bg .bg-stone-50 input:not([type="color"]),
+.dark .admin-page-bg .bg-stone-50 textarea,
+.dark .admin-page-bg .bg-stone-50 select,
+.dark .admin-page-bg .bg-stone-50\/80 input:not([type="color"]),
+.dark .admin-page-bg .bg-stone-50\/80 textarea,
+.dark .admin-page-bg .bg-stone-50\/80 select {
+  background-color: #1c1917 !important;
+  color: #fafaf9 !important;
+  border-color: #44403c !important;
+}
+
+.dark .admin-page-bg input::placeholder,
+.dark .admin-page-bg textarea::placeholder {
+  color: #78716c !important;
+}
+
+.dark .admin-page-bg button.bg-stone-900 {
+  background-color: #292524 !important;
+  color: #fafaf9 !important;
+  border: 1px solid #57534e !important;
+}
+
+.dark .admin-page-bg button.bg-stone-900:hover {
+  background-color: #383431 !important;
+}
+
+.dark .admin-page-bg .bg-amber-50,
+.dark .admin-page-bg .bg-amber-50\/40,
+.dark .admin-page-bg .bg-amber-50\/80,
+.dark .admin-page-bg .bg-amber-50\/90,
+.dark .admin-page-bg .bg-amber-100 {
+  background-color: rgba(120, 53, 15, 0.28) !important;
+  border-color: rgba(180, 83, 9, 0.45) !important;
+  color: #fcd34d !important;
+}
+
+.dark .admin-page-bg .text-amber-950,
+.dark .admin-page-bg .text-amber-900,
+.dark .admin-page-bg .text-amber-900\/90,
+.dark .admin-page-bg .text-amber-800,
+.dark .admin-page-bg .text-amber-700 {
+  color: #fcd34d !important;
+}
+
+.dark .admin-page-bg .bg-purple-50,
+.dark .admin-page-bg .bg-indigo-50,
+.dark .admin-page-bg .bg-blue-50,
+.dark .admin-page-bg .bg-rose-50,
+.dark .admin-page-bg .bg-emerald-50,
+.dark .admin-page-bg .bg-teal-50,
+.dark .admin-page-bg .bg-violet-50,
+.dark .admin-page-bg .bg-green-50 {
+  background-color: #292524 !important;
+  border-color: #383431 !important;
+}
+
+.dark .text-stone-900 {
+  color: #fafaf9 !important;
+}
+
+.dark .text-stone-800,
+.dark .text-stone-700 {
+  color: #e7e5e4 !important;
+}
+
+.dark .text-stone-600,
+.dark .text-stone-500 {
+  color: #d6d3d1 !important;
+}
+
+.dark .text-stone-400 {
+  color: #a8a29e !important;
+}
+
+/* Contraste mejorado en el pie del menú lateral (Drawer) */
+.drawer-footer-company {
+  color: #373330 !important;
+  font-weight: 600 !important;
+}
+.dark .drawer-footer-company,
+html.dark .drawer-footer-company {
+  color: #e7e5e4 !important;
+}
+
+/* Pie de página completo sin recortes en ninguna vista (incluyendo Favoritos y móviles) */
+.catalog-page-bg,
+#catalog-app {
+  min-height: 100vh;
+  min-height: 100dvh;
+}
+
+.catalog-footer {
+  width: 100% !important;
+  flex-shrink: 0 !important;
+  padding-top: 1.5rem !important;
+  padding-bottom: calc(3rem + env(safe-area-inset-bottom, 0px)) !important;
+  color: #44403c !important;
+  background-color: #ffffff !important;
+  border-top: 1px solid #e7e5e4 !important;
+  line-height: 1.6 !important;
+  overflow: visible !important;
+}
+@media (min-width: 640px) {
+  .catalog-footer {
+    padding-bottom: calc(2rem + env(safe-area-inset-bottom, 0px)) !important;
+  }
+}
+.dark .catalog-footer,
+html.dark .catalog-footer {
+  color: #d6d3d1 !important;
+  background-color: #1c1917 !important;
+  border-top-color: #292524 !important;
+}
+
+/* Menú desplegable de Ordenar y Cuadrícula: fondo 100% opaco y z-index superior a las categorías */
+.catalog-dropdown-menu {
+  position: absolute !important;
+  top: 100% !important;
+  margin-top: 0.5rem !important;
+  z-index: 999 !important;
+  background-color: #ffffff !important;
+  border: 1px solid #d6d3d1 !important;
+  box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.18), 0 8px 10px -6px rgba(0, 0, 0, 0.12) !important;
+  overflow: hidden !important;
+}
+.dark .catalog-dropdown-menu,
+html.dark .catalog-dropdown-menu {
+  background-color: #1c1917 !important;
+  border: 1px solid #44403c !important;
+  box-shadow: 0 20px 30px -5px rgba(0, 0, 0, 0.8), 0 10px 15px -5px rgba(0, 0, 0, 0.65) !important;
+}
+
+.catalog-dropdown-header {
+  background-color: #f5f5f4 !important;
+  color: #44403c !important;
+  border-bottom: 1px solid #e7e5e4 !important;
+}
+.dark .catalog-dropdown-header,
+html.dark .catalog-dropdown-header {
+  background-color: #292524 !important;
+  color: #e7e5e4 !important;
+  border-bottom: 1px solid #44403c !important;
+}
+
+.catalog-dropdown-item {
+  color: #292524 !important;
+}
+.catalog-dropdown-item:hover {
+  background-color: #f5f5f4 !important;
+}
+.dark .catalog-dropdown-item,
+html.dark .catalog-dropdown-item {
+  color: #e7e5e4 !important;
+}
+.dark .catalog-dropdown-item:hover,
+html.dark .catalog-dropdown-item:hover {
+  background-color: #292524 !important;
+}
+
+.dark .border-stone-100,
+.dark .border-stone-200,
+.dark .border-stone-300,
+.dark .border-stone-200\/50,
+.dark .border-stone-200\/60,
+.dark .border-stone-200\/70,
+.dark .border-stone-200\/80,
+.dark .border-stone-200\/90 {
+  border-color: #383431 !important;
+}
+
+.dark .aspect-card {
+  background: transparent !important;
+  background-color: transparent !important;
+}
+
+.dark header.sticky {
+  background-color: rgba(28, 25, 23, 0.96) !important;
+  border-color: #292524 !important;
+}
+
+/* Colores exactos de categorías en modo oscuro */
+.dark .cat-pill-inactive,
+html.dark .cat-pill-inactive {
+  background-color: #1C1A19 !important;
+  color: #827B76 !important;
+  border: 1px solid #302D2B !important;
+  border-color: #302D2B !important;
+}
+
+.dark .cat-pill-active,
+html.dark .cat-pill-active {
+  background-color: #211F1E !important;
+  color: #D49B72 !important;
+  border: 1px solid #D49B72 !important;
+  border-color: #D49B72 !important;
+}
+
+/* 1. BOTÓN DE SUBIR ARRIBA (⬆️), REGRESAR/CERRAR Y BOTONES DE TARJETA (VISTAS, FAVORITOS, COMPARTIR) ADAPTABLES AL TEMA */
+#btn-scroll-to-top,
+#btn-scroll-top,
+#btn-close-product-detail,
+#btn-close-zoom,
+.btn-views-card,
+.btn-share-card,
+.btn-favorite-card {
+  background-color: #ffffff !important;
+  color: #1c1917 !important;
+  border: 1px solid #d6d3d1 !important;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.08) !important;
+}
+#btn-scroll-to-top:hover,
+#btn-scroll-top:hover,
+#btn-close-product-detail:hover,
+#btn-close-zoom:hover,
+.btn-favorite-card:hover,
+.btn-share-card:hover {
+  background-color: #f5f5f4 !important;
+  border-color: #a8a29e !important;
+}
+#btn-scroll-to-top svg,
+#btn-scroll-top svg,
+#btn-close-product-detail svg,
+#btn-close-zoom svg {
+  color: #1c1917 !important;
+  stroke: #1c1917 !important;
+}
+
+.dark #btn-scroll-to-top,
+.dark #btn-scroll-top,
+.dark #btn-close-product-detail,
+.dark #btn-close-zoom,
+.dark .btn-views-card,
+.dark .btn-share-card,
+.dark .btn-favorite-card,
+html.dark #btn-scroll-to-top,
+html.dark #btn-scroll-top,
+html.dark #btn-close-product-detail,
+html.dark #btn-close-zoom,
+html.dark .btn-views-card,
+html.dark .btn-share-card,
+html.dark .btn-favorite-card,
+.dark button[onclick*="favClick"].btn-favorite-card {
+  background-color: #1c1917 !important;
+  color: #ffffff !important;
+  border: 1px solid #44403c !important;
+  border-color: #44403c !important;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.4) !important;
+}
+.dark #btn-scroll-to-top:hover,
+.dark #btn-scroll-top:hover,
+.dark #btn-close-product-detail:hover,
+.dark #btn-close-zoom:hover,
+.dark .btn-favorite-card:hover,
+.dark .btn-share-card:hover,
+html.dark #btn-scroll-to-top:hover,
+html.dark #btn-scroll-top:hover,
+html.dark #btn-close-product-detail:hover,
+html.dark #btn-close-zoom:hover,
+html.dark .btn-favorite-card:hover,
+html.dark .btn-share-card:hover,
+.dark button[onclick*="favClick"].btn-favorite-card:hover {
+  background-color: #292524 !important;
+  border-color: #57534e !important;
+}
+.dark #btn-scroll-to-top svg,
+.dark #btn-scroll-top svg,
+.dark #btn-close-product-detail svg,
+.dark #btn-close-zoom svg,
+html.dark #btn-scroll-to-top svg,
+html.dark #btn-scroll-top svg,
+html.dark #btn-close-product-detail svg,
+html.dark #btn-close-zoom svg {
+  color: #ffffff !important;
+  stroke: #ffffff !important;
+}
+
+/* MODAL DE ZOOM ADAPTABLE AL TEMA */
+#standalone-image-zoom-modal,
+#image-zoom-modal-overlay {
+  background-color: rgba(245, 245, 244, 0.98) !important;
+  color: #1c1917 !important;
+}
+.dark #standalone-image-zoom-modal,
+.dark #image-zoom-modal-overlay,
+html.dark #standalone-image-zoom-modal,
+html.dark #image-zoom-modal-overlay {
+  background-color: rgba(12, 10, 9, 0.98) !important;
+  color: #f5f5f4 !important;
+}
+
+/* ÍCONO DE LLAMA NARANJA Y RELLENO (SÓLIDO) EN TODAS LAS VISTAS */
+.flame-icon-solid,
+svg.flame-icon-solid,
+.flame-icon-solid path,
+svg.flame-icon-solid path {
+  color: #f97316 !important;
+  fill: #f97316 !important;
+  stroke: #f97316 !important;
+}
+
+/* 1. ÍCONO DE VISTAS (OJO): NEGRO EN MODO CLARO, BLANCO EN MODO OSCURO */
+.icon-eye-neutral,
+.icon-eye-neutral path,
+.icon-eye-neutral circle,
+.btn-views-card svg:not(.flame-icon-solid),
+.btn-views-card svg:not(.flame-icon-solid) path,
+.btn-views-card svg:not(.flame-icon-solid) circle {
+  color: #1c1917 !important;
+  stroke: #1c1917 !important;
+  fill: none !important;
+}
+.dark .icon-eye-neutral,
+.dark .icon-eye-neutral path,
+.dark .icon-eye-neutral circle,
+html.dark .icon-eye-neutral,
+html.dark .icon-eye-neutral path,
+html.dark .icon-eye-neutral circle,
+.dark .btn-views-card svg:not(.flame-icon-solid),
+.dark .btn-views-card svg:not(.flame-icon-solid) path,
+.dark .btn-views-card svg:not(.flame-icon-solid) circle,
+html.dark .btn-views-card svg:not(.flame-icon-solid),
+html.dark .btn-views-card svg:not(.flame-icon-solid) path,
+html.dark .btn-views-card svg:not(.flame-icon-solid) circle {
+  color: #ffffff !important;
+  stroke: #ffffff !important;
+  fill: none !important;
+}
+.btn-views-card span {
+  color: #1c1917 !important;
+}
+.dark .btn-views-card span,
+html.dark .btn-views-card span {
+  color: #f5f5f4 !important;
+}
+
+/* 3. ÍCONO DE FAVORITOS (CORAZÓN): CONTORNO NEUTRO (NEGRO CLARO / BLANCO OSCURO), RELLENO ROJO SOLO SI ES FAVORITO */
+.fav-icon-heart,
+.fav-icon-heart path,
+.btn-favorite-card svg,
+.btn-favorite-card svg path,
+button[onclick*="favClick"].btn-favorite-card svg,
+button[onclick*="favClick"].btn-favorite-card svg path {
+  color: #1c1917 !important;
+  stroke: #1c1917 !important;
+}
+.dark .fav-icon-heart,
+.dark .fav-icon-heart path,
+html.dark .fav-icon-heart,
+html.dark .fav-icon-heart path,
+.dark .btn-favorite-card svg,
+.dark .btn-favorite-card svg path,
+html.dark .btn-favorite-card svg,
+html.dark .btn-favorite-card svg path,
+.dark button[onclick*="favClick"].btn-favorite-card svg,
+.dark button[onclick*="favClick"].btn-favorite-card svg path,
+html.dark button[onclick*="favClick"].btn-favorite-card svg,
+html.dark button[onclick*="favClick"].btn-favorite-card svg path {
+  color: #ffffff !important;
+  stroke: #ffffff !important;
+}
+.fav-icon-heart.fav-is-empty,
+.fav-icon-heart.fav-is-empty path,
+.dark .fav-icon-heart.fav-is-empty,
+.dark .fav-icon-heart.fav-is-empty path,
+html.dark .fav-icon-heart.fav-is-empty,
+html.dark .fav-icon-heart.fav-is-empty path {
+  fill: none !important;
+}
+.fav-icon-heart.fav-is-active,
+.fav-icon-heart.fav-is-active path,
+.dark .fav-icon-heart.fav-is-active,
+.dark .fav-icon-heart.fav-is-active path,
+html.dark .fav-icon-heart.fav-is-active,
+html.dark .fav-icon-heart.fav-is-active path {
+  fill: #ef4444 !important;
+}
+
+/* 4. ÍCONO DE COMPARTIR: NEGRO EN MODO CLARO, BLANCO EN MODO OSCURO */
+.icon-share-neutral,
+.icon-share-neutral circle,
+.icon-share-neutral line,
+.icon-share-neutral path,
+.btn-share-card svg,
+.btn-share-card svg circle,
+.btn-share-card svg line,
+.btn-share-card svg path,
+button[onclick*="shareProductClick"].btn-share-card svg {
+  color: #1c1917 !important;
+  stroke: #1c1917 !important;
+  fill: none !important;
+}
+.dark .icon-share-neutral,
+.dark .icon-share-neutral circle,
+.dark .icon-share-neutral line,
+.dark .icon-share-neutral path,
+html.dark .icon-share-neutral,
+html.dark .icon-share-neutral circle,
+html.dark .icon-share-neutral line,
+html.dark .icon-share-neutral path,
+.dark .btn-share-card svg,
+.dark .btn-share-card svg circle,
+.dark .btn-share-card svg line,
+.dark .btn-share-card svg path,
+html.dark .btn-share-card svg,
+html.dark .btn-share-card svg circle,
+html.dark .btn-share-card svg line,
+html.dark .btn-share-card svg path,
+.dark button[onclick*="shareProductClick"].btn-share-card svg,
+html.dark button[onclick*="shareProductClick"].btn-share-card svg {
+  color: #ffffff !important;
+  stroke: #ffffff !important;
+  fill: none !important;
+}
+
+/* Botón Favorito en Modal de Producto en Modo Oscuro */
+.dark #standalone-product-modal button[onclick*="favClick"],
+.dark #product-detail-modal button[onclick*="toggleFavorite"] {
+  background-color: #292524 !important;
+  border-color: #44403c !important;
+  color: #f5f5f4 !important;
+}
+.dark #standalone-product-modal button[onclick*="favClick"]:hover,
+.dark #product-detail-modal button[onclick*="toggleFavorite"]:hover {
+  background-color: #383431 !important;
+}
+
+/* Otros botones de interfaz en Modo Oscuro */
+.dark #btn-theme-toggle,
+.dark #btn-header-menu {
+  background-color: rgba(41, 37, 36, 0.9) !important;
+  border: 1px solid #44403c !important;
+  color: #f5f5f4 !important;
+}
+.dark #btn-theme-toggle:hover,
+.dark #btn-header-menu:hover {
+  background-color: #44403c !important;
+}
+.dark input#search-input {
+  background-color: #1c1917 !important;
+  border-color: #383431 !important;
+  color: #f5f5f4 !important;
+}
+.dark input#search-input::placeholder {
+  color: #78716c !important;
+}
+
+/* BLOQUEO DE SCROLL DEL FONDO Y OVERSCROLL-BEHAVIOR EN TODOS LOS MODALES */
+html.modal-scroll-locked,
+body.modal-scroll-locked {
+  overflow: hidden !important;
+  overscroll-behavior: none !important;
+  overscroll-behavior-y: none !important;
+}
+
+#standalone-product-modal,
+#standalone-modal-body,
+#standalone-image-zoom-modal,
+#zoom-img-container,
+#drawer-overlay,
+#drawer-panel,
+#promo-detail-modal,
+#standalone-info-modal,
+#exit-confirm-modal-overlay,
+#product-detail-modal-overlay,
+#product-detail-modal-card,
+#image-zoom-modal-overlay,
+.modal-overscroll-contain,
+#product-detail-modal-overlay .overflow-y-auto,
+#promo-detail-modal .overflow-y-auto,
+#standalone-info-modal .overflow-y-auto,
+#drawer-panel .overflow-y-auto {
+  overscroll-behavior: contain !important;
+  overscroll-behavior-y: contain !important;
+  -webkit-overflow-scrolling: touch;
+}
+
