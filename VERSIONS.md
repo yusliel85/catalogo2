@@ -270,3 +270,4 @@ En caso de que cambios futuros introduzcan fallos o regresiones:
    - `src/components/CatalogPreview.tsx`: Vista interactiva del cliente.
    - `src/versionsData.ts`: Historial y control de versiones.
 <!-- Build trigger v29.0 -->
+<!-- build trigger -->)
