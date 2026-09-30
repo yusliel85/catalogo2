@@ -1,0 +1,18 @@
+{
+  "name": "Catálogo Interactivo y Gestor de Exhibición",
+  "short_name": "Catálogo",
+  "description": "Catálogo interactivo de exhibición 100% autónomo y funcional en modo avión (v29.0 Estable)",
+  "start_url": "./index.html",
+  "display": "standalone",
+  "background_color": "#1c1917",
+  "theme_color": "#1c1917",
+  "orientation": "portrait-primary",
+  "icons": [
+    {
+      "src": "./icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}
